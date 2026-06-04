@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FLOW{% endblock %}</title>
+
+  <!-- IMPORTANT: bundled locally, NOT from a CDN (the ELW often has no internet) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pico.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="container app-header__inner">
+      <a href="/" class="app-header__brand">
+        <span class="app-header__dot" aria-hidden="true"></span>
+        FLOW
+      </a>
+      {% block header_extra %}{% endblock %}
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">
+      <small>{% block footer %}Local incident system &middot; internal network only{% endblock %}</small>
+    </div>
+  </footer>
+
+  <!-- Page-specific JS first (registers the alpine:init listener) ... -->
+  {% block scripts %}{% endblock %}
+  <!-- ... then Alpine (defer). This guarantees the listener exists before Alpine starts. -->
+  <script defer src="{{ url_for('static', filename='js/alpine.min.js') }}"></script>
+</body>
+</html>

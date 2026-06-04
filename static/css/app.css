@@ -1,0 +1,138 @@
+/* ============================================================
+   app.css  —  thin layer on top of Pico.css
+   Intentionally restrained: one accent, clear surfaces, legible.
+   ============================================================ */
+
+:root {
+  --accent:       #c8102e;   /* Wasserwacht red, used as the single accent */
+  --accent-dark:  #a50d26;
+  --surface:      #ffffff;
+  --border:       #e3e6ea;
+  --muted-text:   #5b6470;
+}
+
+/* [x-cloak] hides elements until Alpine has loaded -> prevents the edit
+   panel from flashing on page load. */
+[x-cloak] { display: none !important; }
+
+
+/* --- Header and footer -------------------------------------- */
+
+.app-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.app-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 0.6rem;
+}
+.app-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-decoration: none;
+  color: inherit;
+}
+.app-header__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.15);
+}
+.app-footer {
+  margin-top: 3rem;
+  padding-block: 1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted-text);
+}
+
+
+/* --- Page head with title + edit button --------------------- */
+
+.page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-block: 1.5rem 1rem;
+}
+.page-head h1 { margin: 0; }
+
+
+/* --- Button grid (the clickable tools) ---------------------- */
+
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.tool-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-height: 120px;
+  padding: 1.1rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.08s ease, box-shadow 0.12s ease;
+}
+.tool-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-left-color: var(--accent-dark);
+}
+.tool-card__icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--accent);
+}
+.tool-card__label {
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.empty-hint {
+  grid-column: 1 / -1;
+  color: var(--muted-text);
+  text-align: center;
+  padding: 2rem;
+}
+
+
+/* --- Edit panel --------------------------------------------- */
+
+.edit-panel {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+.edit-panel h2 { margin-top: 0; font-size: 1.15rem; }
+
+.edit-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+.edit-add input { flex: 1 1 180px; margin: 0; }
+.edit-add__icon { flex: 0 1 130px; }
+.edit-add button { flex: 0 0 auto; }
+
+.edit-panel table input { margin: 0; }
+.tool-inactive { opacity: 0.5; }
+
+.small {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+}

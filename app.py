@@ -1,12 +1,19 @@
 from flask import Flask
 from flask_socketio import SocketIO
 
+from core.db import init_db, migrate
+from pages import index
+
+# Init Flask
 app = Flask(__name__)
 socketio = SocketIO(app)
 
-@app.route('/')
-def hello_world():  # put application's code here
-    return 'Hello World!'
+# Init Database
+init_db()
+migrate()
+
+# Register Routes
+index.register(app)
 
 
 if __name__ == '__main__':

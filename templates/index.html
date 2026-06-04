@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Overview &middot; FLOW{% endblock %}
+
+{% block content %}
+<!--
+  Jinja embeds the active buttons directly as the initial state of the Alpine
+  object (option A). |tojson serializes the list safely and HTML-escaped as the
+  argument.
+-->
+<section x-data='indexPage({{ tools|tojson }})'>
+
+  <div class="page-head">
+    <h1>Tools</h1>
+    <button class="secondary outline" @click="toggleEditing()">
+      <span x-text="editing ? 'Done' : 'Edit'"></span>
+    </button>
+  </div>
+
+  <!-- DISPLAY MODE: the clickable buttons (active only) -->
+  <div class="tool-grid">
+    <template x-for="tool in activeTools" :key="tool.id">
+      <a class="tool-card" :href="tool.target_route">
+        <span class="tool-card__icon" x-text="tool.icon || '&#9656;'"></span>
+        <span class="tool-card__label" x-text="tool.label"></span>
+      </a>
+    </template>
+
+    <p x-show="activeTools.length === 0" class="empty-hint">
+      No tools yet.
+    </p>
+  </div>
+
+  <!-- EDIT MODE: only visible when 'editing' -->
+  <div class="edit-panel" x-show="editing" x-cloak>
+    <h2>Manage tools</h2>
+
+    <!-- Add a new button -->
+    <div class="edit-add">
+      <input type="text" placeholder="Label" x-model="draft.label">
+      <input type="text" placeholder="Target route, e.g. /einsatzuebersicht" x-model="draft.target_route">
+      <input type="text" placeholder="Icon (optional)" x-model="draft.icon" class="edit-add__icon">
+      <button @click="add()" :disabled="!draft.label || !draft.target_route">
+        Add
+      </button>
+    </div>
+
+    <!-- List of ALL buttons (including hidden ones) for editing -->
+    <table>
+      <thead>
+        <tr><th>Active</th><th>Label</th><th>Target route</th><th></th></tr>
+      </thead>
+      <tbody>
+        <template x-for="tool in tools" :key="tool.id">
+          <tr :class="{ 'tool-inactive': !tool.active }">
+            <td>
+              <input type="checkbox" :checked="tool.active"
+                     @change="update(tool, { active: $event.target.checked ? 1 : 0 })">
+            </td>
+            <td>
+              <input type="text" x-model="tool.label"
+                     @change="update(tool, { label: tool.label })">
+            </td>
+            <td>
+              <input type="text" x-model="tool.target_route"
+                     @change="update(tool, { target_route: tool.target_route })">
+            </td>
+            <td>
+              <button class="secondary outline small" @click="remove(tool)">Delete</button>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+{% endblock %}
