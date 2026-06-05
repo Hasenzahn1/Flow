@@ -10,7 +10,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('selectionPage', (operations = []) => ({
     newName: '',
 
-    rows: Array.from({ length: 9 }, (_, i) => {
+    rows: Array.from({ length: Math.max(operations.length, 9) }, (_, i) => {
       console.log(operations);
       const s = operations[i];
       if (!s) return null;

@@ -141,13 +141,16 @@
 /* --- Scrollable operation table ----------------------------- */
 
 .table-scroll {
-  overflow-y: auto;
+  overflow-y: scroll;
   max-height: calc(10 * 3rem + 2.75rem); /* 10 data rows + thead */
   border: 1px solid var(--border);
   border-radius: 8px;
 }
 .table-scroll table {
   margin: 0;
+  overflow: visible; /* override Pico's overflow-x: auto so parent scroll works */
+  display: table;   /* keep table layout */
+  width: 100%;
 }
 .table-scroll thead th {
   position: sticky;
