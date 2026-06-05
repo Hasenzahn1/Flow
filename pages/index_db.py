@@ -16,7 +16,7 @@ def add_tool(label, route, icon=None, order_index = None) -> dict:
     if order_index is None:
         order_index = con.execute("SELECT COALESCE(MAX(order_index), 0) + 1 AS n FROM tools").fetchone()["n"]
 
-    cur = con.execute("INSERT INTO tools (label, route, icon, order_index) VALUES (?,?,?,?)", (label, route, icon, order_index))
+    cur = con.execute("INSERT INTO tools (label, route, icon_path, order_index) VALUES (?,?,?,?)", (label, route, icon, order_index))
     con.commit()
     new_id = cur.lastrowid
     con.close()

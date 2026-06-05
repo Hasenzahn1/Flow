@@ -20,8 +20,8 @@
   <!-- DISPLAY MODE: the clickable buttons (active only) -->
   <div class="tool-grid">
     <template x-for="tool in activeTools" :key="tool.id">
-      <a class="tool-card" :href="tool.target_route">
-        <span class="tool-card__icon" x-text="tool.icon || '&#9656;'"></span>
+      <a class="tool-card" :href="tool.route">
+        <span class="tool-card__icon_path" x-text="tool.icon_path || '&#9656;'"></span>
         <span class="tool-card__label" x-text="tool.label"></span>
       </a>
     </template>
@@ -38,9 +38,9 @@
     <!-- Add a new button -->
     <div class="edit-add">
       <input type="text" placeholder="Label" x-model="draft.label">
-      <input type="text" placeholder="Target route, e.g. /einsatzuebersicht" x-model="draft.target_route">
-      <input type="text" placeholder="Icon (optional)" x-model="draft.icon" class="edit-add__icon">
-      <button @click="add()" :disabled="!draft.label || !draft.target_route">
+      <input type="text" placeholder="Target route, e.g. /einsatzuebersicht" x-model="draft.route">
+      <input type="text" placeholder="icon_path (optional)" x-model="draft.icon_path" class="edit-add__icon_path">
+      <button @click="add()" :disabled="!draft.label || !draft.route">
         Add
       </button>
     </div>
@@ -62,8 +62,8 @@
                      @change="update(tool, { label: tool.label })">
             </td>
             <td>
-              <input type="text" x-model="tool.target_route"
-                     @change="update(tool, { target_route: tool.target_route })">
+              <input type="text" x-model="tool.route"
+                     @change="update(tool, { route: tool.route })">
             </td>
             <td>
               <button class="secondary outline small" @click="remove(tool)">Delete</button>

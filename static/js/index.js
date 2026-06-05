@@ -8,7 +8,7 @@ document.addEventListener('alpine:init', () => {
     // --- State ---
     tools: initialTools,        // on load: active only (from Jinja)
     editing: false,
-    draft: { label: '', target_route: '', icon: '' },
+    draft: { label: '', route: '', icon_path: '' },
 
     // --- Derived: only the active buttons for display ---
     get activeTools() {
@@ -39,7 +39,7 @@ document.addEventListener('alpine:init', () => {
       if (r.ok) {
         const tool = await r.json();     // server returns the finished object
         this.tools.push(tool);           // -> display follows automatically (reactivity)
-        this.draft = { label: '', target_route: '', icon: '' };
+        this.draft = { label: '', route: '', icon_path: '' };
       } else {
         alert('Failed to add tool.');
       }
