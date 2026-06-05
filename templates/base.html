@@ -13,11 +13,14 @@
 
   <header class="app-header">
     <div class="container app-header__inner">
+      {% block header_extra %}{% endblock %}
+      <b>
+        21:00
+      </b>
       <a href="/" class="app-header__brand">
         <span class="app-header__dot" aria-hidden="true"></span>
         FLOW
       </a>
-      {% block header_extra %}{% endblock %}
     </div>
   </header>
 

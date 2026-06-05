@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, jsonify, request
 
-from pages.index_db import get_tools, add_tool, get_tool, update_tool, delete_tool
+from core.index_db import get_tools, add_tool, get_tool, update_tool, delete_tool
 
 bp = Blueprint('index', __name__)
 

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Einsatzübersicht - FLOW{% endblock %}
+
+{% block header_extra %} <b>Einsatzübersicht - Lageauswahl</b>{% endblock %}
+
+{% block content %}
+<!--
+  Jinja embeds the active buttons directly as the initial state of the Alpine
+  object (option A). |tojson serializes the list safely and HTML-escaped as the
+  argument.
+-->
+<section x-data='selectionPage({{ operations|tojson }})'>
+
+  <div class="page-head">
+    <h1>Lageauswahl</h1>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Datum</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-create">
+          <td>
+            <input type="text" x-model="newName" placeholder="Neue Lage …" @keydown.enter="createoperation()">
+          </td>
+          <td>
+            <button class="small" @click="createoperation()">+</button>
+          </td>
+        </tr>
+        <template x-for="(row, i) in rows" :key="i">
+          <tr
+            :class="row ? 'row-selectable' : ''"
+            @dblclick="row && (window.location.href = '/operation_overview/' + row.id)"
+          >
+            <td x-text="row ? row.name : ''"></td>
+            <td x-text="row ? row.date : ''"></td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/operation_selection.js') }}"></script>
+{% endblock %}
