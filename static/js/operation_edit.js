@@ -41,6 +41,44 @@ document.addEventListener('alpine:init', () => {
     }
   }));
 
+  Alpine.data('inlineDateField', (type, entityId, field, operationId) => ({
+    editing: false,
+    input: '',
+
+    displayDate(ts) {
+      if (!ts) return '—';
+      return new Date(ts * 1000).toLocaleDateString('de-DE');
+    },
+
+    open(ts) {
+      if (ts) {
+        const d = new Date(ts * 1000);
+        this.input = [
+          d.getFullYear(),
+          String(d.getMonth() + 1).padStart(2, '0'),
+          String(d.getDate()).padStart(2, '0')
+        ].join('-');
+      } else {
+        this.input = '';
+      }
+      this.editing = true;
+      this.$nextTick(() => {
+        this.$refs.inp.value = this.input;
+        this.$refs.inp.focus();
+        try { this.$refs.inp.showPicker(); } catch (_) {}
+      });
+    },
+
+    save() {
+      if (!this.editing) return;
+      this.editing = false;
+      if (!this.input) return;
+      const d = new Date(this.input + 'T00:00:00');
+      if (isNaN(d)) return;
+      this.saveField(type, entityId, field, Math.floor(d.getTime() / 1000), operationId);
+    }
+  }));
+
   Alpine.data('editPage', (operation = []) => ({
     operation_id: operation.id,
     operation_name: operation.name,

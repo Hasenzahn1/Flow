@@ -117,7 +117,16 @@
                   </div>
                 </div>
 
-                <div class="person-card__row"><span class="person-card__label">Geb. Datum: </span><span x-text="person.birthdate"></span></div>
+                <div class="person-card__row" x-data="inlineDateField('person', person.id, 'birthdate', operation_id)">
+                  <span class="person-card__label">Geb. Datum: </span>
+                  <div class="inline-edit-wrapper">
+                    <span class="inline-editable" x-show="!editing" @click="open(person.birthdate)" x-text="displayDate(person.birthdate)"></span>
+                    <div x-show="editing">
+                      <input x-ref="inp" type="date" x-model="input" class="inline-input"
+                        @blur="save()" @keydown.enter.prevent="save()" @keydown.escape="editing = false">
+                    </div>
+                  </div>
+                </div>
                 <div class="person-card__row"><span class="person-card__label">Geschlecht: </span>  <span x-text="person.gender"></span></div>
               </div>
               <div>
@@ -266,7 +275,16 @@
                   </div>
                 </div>
 
-                <div class="person-card__row"><span class="person-card__label">Geb. Datum: </span><span x-text="person.birthdate"></span></div>
+                <div class="person-card__row" x-data="inlineDateField('person', person.id, 'birthdate', operation_id)">
+                  <span class="person-card__label">Geb. Datum: </span>
+                  <div class="inline-edit-wrapper">
+                    <span class="inline-editable" x-show="!editing" @click="open(person.birthdate)" x-text="displayDate(person.birthdate)"></span>
+                    <div x-show="editing">
+                      <input x-ref="inp" type="date" x-model="input" class="inline-input"
+                        @blur="save()" @keydown.enter.prevent="save()" @keydown.escape="editing = false">
+                    </div>
+                  </div>
+                </div>
                 <div class="person-card__row"><span class="person-card__label">Geschlecht: </span>  <span x-text="person.gender"></span></div>
               </div>
               <div>
