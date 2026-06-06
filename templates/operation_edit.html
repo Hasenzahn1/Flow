@@ -127,7 +127,16 @@
                     </div>
                   </div>
                 </div>
-                <div class="person-card__row"><span class="person-card__label">Geschlecht: </span>  <span x-text="person.gender"></span></div>
+                <div class="person-card__row">
+                  <span class="person-card__label">Geschlecht: </span>
+                  <select class="inline-select"
+                    @change="saveField('person', person.id, 'gender', $event.target.value, operation_id)">
+                    <option value="" :selected="!person.gender">—</option>
+                    <option value="Männlich" :selected="person.gender == 'Männlich'">Männlich</option>
+                    <option value="Weiblich" :selected="person.gender == 'Weiblich'">Weiblich</option>
+                    <option value="Divers" :selected="person.gender == 'Divers'">Divers</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <div class="person-card__row person-card__row--check">
@@ -156,7 +165,15 @@
                 </div>
 
                 <div class="person-card__row"><span class="person-card__label2">Info: </span>        <span x-text="person.info"></span></div>
-                <div class="person-card__row"><span class="person-card__label2">Triage: </span>      <span x-text="person.triage"></span></div>
+                <div class="person-card__row person-card__row--check">
+                  <span class="person-card__label2">Triage: </span>
+                  <div class="triage-boxes">
+                    <button class="triage-box triage-box--gray"   :class="{'triage-box--active': person.triage == 0}" @click="saveField('person', person.id, 'triage', 0, operation_id)"></button>
+                    <button class="triage-box triage-box--green"  :class="{'triage-box--active': person.triage == 1}" @click="saveField('person', person.id, 'triage', 1, operation_id)"></button>
+                    <button class="triage-box triage-box--yellow" :class="{'triage-box--active': person.triage == 2}" @click="saveField('person', person.id, 'triage', 2, operation_id)"></button>
+                    <button class="triage-box triage-box--red"    :class="{'triage-box--active': person.triage == 3}" @click="saveField('person', person.id, 'triage', 3, operation_id)"></button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -285,7 +302,16 @@
                     </div>
                   </div>
                 </div>
-                <div class="person-card__row"><span class="person-card__label">Geschlecht: </span>  <span x-text="person.gender"></span></div>
+                <div class="person-card__row">
+                  <span class="person-card__label">Geschlecht: </span>
+                  <select class="inline-select"
+                    @change="saveField('person', person.id, 'gender', $event.target.value, operation_id)">
+                    <option value="" :selected="!person.gender">—</option>
+                    <option value="Männlich" :selected="person.gender == 'Männlich'">Männlich</option>
+                    <option value="Weiblich" :selected="person.gender == 'Weiblich'">Weiblich</option>
+                    <option value="Divers" :selected="person.gender == 'Divers'">Divers</option>
+                  </select>
+                </div>
               </div>
               <div>
                 <div class="person-card__row person-card__row--check">
@@ -314,7 +340,15 @@
                 </div>
 
                 <div class="person-card__row"><span class="person-card__label2">Info: </span>        <span x-text="person.info"></span></div>
-                <div class="person-card__row"><span class="person-card__label2">Triage: </span>      <span x-text="person.triage"></span></div>
+                <div class="person-card__row person-card__row--check">
+                  <span class="person-card__label2">Triage: </span>
+                  <div class="triage-boxes">
+                    <button class="triage-box triage-box--gray"   :class="{'triage-box--active': person.triage == 0}" @click="saveField('person', person.id, 'triage', 0, operation_id)"></button>
+                    <button class="triage-box triage-box--green"  :class="{'triage-box--active': person.triage == 1}" @click="saveField('person', person.id, 'triage', 1, operation_id)"></button>
+                    <button class="triage-box triage-box--yellow" :class="{'triage-box--active': person.triage == 2}" @click="saveField('person', person.id, 'triage', 2, operation_id)"></button>
+                    <button class="triage-box triage-box--red"    :class="{'triage-box--active': person.triage == 3}" @click="saveField('person', person.id, 'triage', 3, operation_id)"></button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

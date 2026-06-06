@@ -455,3 +455,47 @@
   background: var(--accent);
   color: #fff;
 }
+
+
+/* --- Triage boxes ------------------------------------------- */
+
+.triage-boxes {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.triage-box {
+  position: relative;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 3px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  opacity: 1;
+  transition: border-color 0.1s;
+}
+
+.triage-box--active {
+  border-color: #fff;
+}
+
+.triage-box--active::after {
+  content: 'x';
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0,0,0,0.6);
+}
+
+.triage-box--gray   { background: #6b7280; }
+.triage-box--green  { background: #22c55e; }
+.triage-box--yellow { background: #eab308; }
+.triage-box--red    { background: #ef4444; }
