@@ -4,11 +4,11 @@
    ============================================================ */
 
 :root {
-  --accent:       #c8102e;   /* Wasserwacht red, used as the single accent */
-  --accent-dark:  #a50d26;
-  --surface:      #ffffff;
-  --border:       #e3e6ea;
-  --muted-text:   #5b6470;
+  --accent:       #e8263e;   /* Wasserwacht red, brightened for dark bg */
+  --accent-dark:  #c8102e;
+  --surface:      #18181b;
+  --border:       #3f3f46;
+  --muted-text:   #a1a1aa;
 }
 
 /* [x-cloak] hides elements until Alpine has loaded -> prevents the edit
@@ -115,7 +115,7 @@
   padding: 1.25rem;
   border: 1px dashed var(--border);
   border-radius: 10px;
-  background: #fbfcfd;
+  background: #27272a;
 }
 .edit-panel h2 { margin-top: 0; font-size: 1.15rem; }
 
@@ -162,7 +162,7 @@
   cursor: pointer;
 }
 .row-selectable:hover {
-  background: #f4f6f8;
+  background: #2d2d31;
 }
 .row-create td {
   padding-block: 0.35rem;
@@ -175,4 +175,283 @@
 .row-create button {
   margin: 0;
   width: 100%;
+}
+
+
+/* --- Mission card ------------------------------------------- */
+
+.mission-card {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-left: 19px solid var(--accent);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.mission-card--status-0 { border-left-color: var(--accent); }
+.mission-card--status-1 { border-left-color: #eab308; }
+.mission-card--status-2 { border-left-color: var(--muted-text); opacity: 0.75; }
+
+/* Left column */
+.mission-info {
+  flex: 0 0 auto;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-right: 1px solid var(--border);
+  padding-right: 1rem;
+}
+
+.mission-info__number {
+  font-size: 1.1rem;
+  margin-bottom: 0.4rem;
+}
+
+.mission-info__row {
+  display: flex;
+  gap: 0.45rem;
+  font-size: 0.9rem;
+}
+
+.mission-info__label {
+  color: var(--muted-text);
+  min-width: 130px;
+  flex-shrink: 0;
+}
+
+.mission-info__row--block {
+  flex-direction: column;
+  gap: 0.1rem;
+  contain: inline-size;
+  word-break: break-word;
+}
+
+.mission-info__row--block .mission-info__label {
+  min-width: unset;
+}
+
+/* Right column — horizontally scrollable row of person cards */
+.mission-persons {
+  flex: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.75rem;
+  align-items: stretch;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+/* Individual person card */
+.person-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  flex-shrink: 0;
+  width: fit-content;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #27272a;
+}
+
+.person-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 0.3rem;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  color: inherit;
+}
+
+.person-card__chevron {
+  font-size: 0.65rem;
+  color: var(--muted-text);
+  transition: transform 0.15s ease;
+  display: inline-block;
+  transform: rotate(-90deg);
+}
+
+.person-card__chevron--open {
+  transform: rotate(0deg);
+}
+
+.person-card__columns {
+  display: flex;
+  gap: 1rem;
+}
+
+.person-card__columns > div {
+  flex: 1;
+}
+
+.person-card__row {
+  display: flex;
+  flex-direction: row;
+  font-size: 1rem;
+}
+
+.person-card__label {
+  color: var(--muted-text);
+  font-size: 1rem;
+  min-width: 130px;
+}
+
+.person-card__label2 {
+  color: var(--muted-text);
+  font-size: 1rem;
+  min-width: 120px;
+}
+
+
+/* --- Inline checkbox ---------------------------------------- */
+
+.person-card__row--check {
+  align-items: center;
+}
+
+.inline-checkbox {
+  margin: 0 !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+
+/* --- Inline select (status dropdown) ------------------------ */
+
+.inline-select {
+  padding: 0 !important;
+  margin: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: inherit !important;
+  font-size: inherit !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: inherit !important;
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+
+.inline-select:hover,
+.inline-select:focus {
+  border-bottom-color: var(--accent) !important;
+  outline: none !important;
+}
+
+
+/* --- Inline editing ----------------------------------------- */
+
+.inline-edit-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.inline-edit-wrapper > div {
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+.inline-editable {
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.1s;
+  display: inline-block;
+  min-width: 2rem;
+  white-space: nowrap;
+}
+
+.inline-editable:hover {
+  border-bottom-color: var(--muted-text);
+}
+
+.inline-input {
+  width: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: inherit !important;
+  font-size: inherit;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--accent) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: inherit;
+  outline: none !important;
+  vertical-align: baseline;
+}
+
+/* Auto-width input: invisible mirror span drives the width */
+.inline-sizer {
+  display: inline-grid;
+}
+.inline-sizer > span,
+.inline-sizer > input {
+  grid-area: 1 / 1;
+  font: inherit;
+  /*padding: 0.1rem 0.25rem;*/
+  min-width: 3rem;
+  white-space: pre;
+}
+.inline-sizer > span {
+  visibility: hidden;
+}
+.inline-sizer > input {
+  width: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: inherit !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--accent) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: inherit;
+  outline: none !important;
+  vertical-align: baseline;
+}
+
+.autocomplete-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 100%;
+  margin: 2px 0 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  background: #27272a;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.autocomplete-list li {
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.autocomplete-list li:hover {
+  background: var(--accent);
+  color: #fff;
 }

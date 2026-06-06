@@ -41,6 +41,6 @@ def delete_mission(mission_id):
 
 def get_mission(mission_id):
     con = get_db()
-    row = con.execute("SELECT * FROM overview_missions WHERE id = ?", (mission_id)).fetchone()
+    row = con.execute("SELECT * FROM overview_missions WHERE id = ?", (mission_id,)).fetchone()
     con.close()
     return dict(row)

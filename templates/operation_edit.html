@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+
+{% block title %}Einsatzübersicht - FLOW{% endblock %}
+
+{% block header_extra %} <b>Einsatzübersicht - {{ operation.name }}</b>{% endblock %}
+
+{% block content %}
+<section x-data='editPage({{ operation|tojson }})'>
+
+  <!-- ── Aktuelle Einsätze ─────────────────────────────────── -->
+  <h2>Aktuell (<span x-text="current_missions.length"></span>)</h2>
+  <p class="empty-hint" x-show="current_missions.length === 0">Keine aktuellen Einsätze</p>
+
+  <template x-for="(mission, i) in current_missions" :key="i">
+    <div class="mission-card" :class="'mission-card--status-' + mission.status">
+
+      <div class="mission-info">
+        <strong class="mission-info__number" x-text="mission.number"></strong>
+
+        <div class="mission-info__row" x-data="inlineField('mission', mission.id, 'place', operation_id)">
+          <span class="mission-info__label">Ort:</span>
+          <div class="inline-edit-wrapper">
+            <span class="inline-editable" x-show="!editing" @click="open(mission.place)" x-text="mission.place || '—'"></span>
+            <div x-show="editing">
+              <div class="inline-sizer">
+                <span x-text="input || '—'" aria-hidden="true"></span>
+                <input x-ref="inp" x-model="input"
+                  @input="doFilter()" @keydown.tab="tabComplete($event)"
+                  @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                  @blur="save()">
+              </div>
+              <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                <template x-for="(opt, idx) in filtered" :key="idx">
+                  <li @click="input = opt; save()" x-text="opt"></li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="mission-info__row" x-data="inlineField('mission', mission.id, 'unit', operation_id)">
+          <span class="mission-info__label">Einheit:</span>
+          <div class="inline-edit-wrapper">
+            <span class="inline-editable" x-show="!editing" @click="open(mission.unit)" x-text="mission.unit || '—'"></span>
+            <div x-show="editing">
+              <div class="inline-sizer">
+                <span x-text="input || '—'" aria-hidden="true"></span>
+                <input x-ref="inp" x-model="input"
+                  @input="doFilter()" @keydown.tab="tabComplete($event)"
+                  @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                  @blur="save()">
+              </div>
+              <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                <template x-for="(opt, idx) in filtered" :key="idx">
+                  <li @click="input = opt; save()" x-text="opt"></li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="mission-info__row">
+          <span class="mission-info__label">Status:</span>
+          <select class="inline-select"
+            @change="saveField('mission', mission.id, 'status', parseInt($event.target.value), operation_id)">
+            <option value="0" :selected="mission.status == 0">Neu</option>
+            <option value="1" :selected="mission.status == 1">In Bearbeitung</option>
+            <option value="2" :selected="mission.status == 2">Abgeschlossen</option>
+          </select>
+        </div>
+        <div class="mission-info__row mission-info__row--block"><span class="mission-info__label">Beschreibung:</span><span x-text="mission.description"></span></div>
+      </div>
+
+      <div class="mission-persons">
+        <p class="empty-hint" x-show="mission.persons.length === 0">Keine Personen</p>
+        <template x-for="(person, j) in mission.persons" :key="j">
+          <div class="person-card" x-data="{ open: true }">
+            <button class="person-card__header" @click="open = !open">
+              <span x-text="'Patient ' + person.number"></span>
+              <span class="person-card__chevron" :class="{ 'person-card__chevron--open': open }">&#x25BC;</span>
+            </button>
+            <div class="person-card__columns" x-show="open">
+              <div>
+                <div class="person-card__row" x-data="inlineField('person', person.id, 'last_name', operation_id)">
+                  <span class="person-card__label">Nachname: </span>
+                  <div class="inline-edit-wrapper">
+                    <span class="inline-editable" x-show="!editing" @click="open(person.last_name)" x-text="person.last_name || '—'"></span>
+                    <div x-show="editing">
+                      <input x-ref="inp" x-model="input" class="inline-input"
+                        @input="doFilter()" @keydown.tab="tabComplete($event)"
+                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                        @blur="save()">
+                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                        <template x-for="(opt, idx) in filtered" :key="idx">
+                          <li @click="input = opt; save()" x-text="opt"></li>
+                        </template>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="person-card__row" x-data="inlineField('person', person.id, 'name', operation_id)">
+                  <span class="person-card__label">Vorname: </span>
+                  <div class="inline-edit-wrapper">
+                    <span class="inline-editable" x-show="!editing" @click="open(person.name)" x-text="person.name || '—'"></span>
+                    <div x-show="editing">
+                      <input x-ref="inp" x-model="input" class="inline-input"
+                        @input="doFilter()" @keydown.tab="tabComplete($event)"
+                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                        @blur="save()">
+                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                        <template x-for="(opt, idx) in filtered" :key="idx">
+                          <li @click="input = opt; save()" x-text="opt"></li>
+                        </template>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="person-card__row"><span class="person-card__label">Geb. Datum: </span><span x-text="person.birthdate"></span></div>
+                <div class="person-card__row"><span class="person-card__label">Geschlecht: </span>  <span x-text="person.gender"></span></div>
+              </div>
+              <div>
+                <div class="person-card__row person-card__row--check">
+                  <span class="person-card__label2">Verletzt: </span>
+                  <input type="checkbox" class="inline-checkbox"
+                    :checked="!!person.hurt"
+                    @change="saveField('person', person.id, 'hurt', $event.target.checked ? 1 : 0, operation_id)">
+                </div>
+
+                <div class="person-card__row" x-data="inlineField('person', person.id, 'handover', operation_id)">
+                  <span class="person-card__label2">Übergabe: </span>
+                  <div class="inline-edit-wrapper">
+                    <span class="inline-editable" x-show="!editing" @click="open(person.handover)" x-text="person.handover || '—'"></span>
+                    <div x-show="editing">
+                      <input x-ref="inp" x-model="input" class="inline-input"
+                        @input="doFilter()" @keydown.tab="tabComplete($event)"
+                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                        @blur="save()">
+                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                        <template x-for="(opt, idx) in filtered" :key="idx">
+                          <li @click="input = opt; save()" x-text="opt"></li>
+                        </template>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="person-card__row"><span class="person-card__label2">Info: </span>        <span x-text="person.info"></span></div>
+                <div class="person-card__row"><span class="person-card__label2">Triage: </span>      <span x-text="person.triage"></span></div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </div>
+  </template>
+
+  <!-- ── Abgeschlossene Einsätze ───────────────────────────── -->
+  <h2>Abgeschlossen (<span x-text="finished_missions.length"></span>)</h2>
+
+  <template x-for="(mission, i) in finished_missions" :key="i">
+    <div class="mission-card" :class="'mission-card--status-' + mission.status">
+
+      <div class="mission-info">
+        <strong class="mission-info__number" x-text="mission.number"></strong>
+
+        <div class="mission-info__row" x-data="inlineField('mission', mission.id, 'place', operation_id)">
+          <span class="mission-info__label">Ort:</span>
+          <div class="inline-edit-wrapper">
+            <span class="inline-editable" x-show="!editing" @click="open(mission.place)" x-text="mission.place || '—'"></span>
+            <div x-show="editing">
+              <div class="inline-sizer">
+                <span x-text="input || '—'" aria-hidden="true"></span>
+                <input x-ref="inp" x-model="input"
+                  @input="doFilter()" @keydown.tab="tabComplete($event)"
+                  @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                  @blur="save()">
+              </div>
+              <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                <template x-for="(opt, idx) in filtered" :key="idx">
+                  <li @click="input = opt; save()" x-text="opt"></li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="mission-info__row" x-data="inlineField('mission', mission.id, 'unit', operation_id)">
+          <span class="mission-info__label">Einheit:</span>
+          <div class="inline-edit-wrapper">
+            <span class="inline-editable" x-show="!editing" @click="open(mission.unit)" x-text="mission.unit || '—'"></span>
+            <div x-show="editing">
+              <div class="inline-sizer">
+                <span x-text="input || '—'" aria-hidden="true"></span>
+                <input x-ref="inp" x-model="input"
+                  @input="doFilter()" @keydown.tab="tabComplete($event)"
+                  @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                  @blur="save()">
+              </div>
+              <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                <template x-for="(opt, idx) in filtered" :key="idx">
+                  <li @click="input = opt; save()" x-text="opt"></li>
+                </template>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="mission-info__row">
+          <span class="mission-info__label">Status:</span>
+          <select class="inline-select"
+            @change="saveField('mission', mission.id, 'status', parseInt($event.target.value), operation_id)">
+            <option value="0" :selected="mission.status == 0">Neu</option>
+            <option value="1" :selected="mission.status == 1">In Bearbeitung</option>
+            <option value="2" :selected="mission.status == 2">Abgeschlossen</option>
+          </select>
+        </div>
+        <div class="mission-info__row mission-info__row--block"><span class="mission-info__label">Beschreibung:</span><span x-text="mission.description"></span></div>
+      </div>
+
+      <div class="mission-persons">
+        <p class="empty-hint" x-show="mission.persons.length === 0">Keine Personen</p>
+        <template x-for="(person, j) in mission.persons" :key="j">
+          <div class="person-card" x-data="{ open: true }">
+            <button class="person-card__header" @click="open = !open">
+              <span x-text="'Patient ' + person.number"></span>
+              <span class="person-card__chevron" :class="{ 'person-card__chevron--open': open }">&#x25BC;</span>
+            </button>
+            <div class="person-card__columns" x-show="open">
+              <div>
+                <div class="person-card__row" x-data="inlineField('person', person.id, 'last_name', operation_id)">
+                  <span class="person-card__label">Nachname: </span>
+                  <div class="inline-edit-wrapper">
+                    <span class="inline-editable" x-show="!editing" @click="open(person.last_name)" x-text="person.last_name || '—'"></span>
+                    <div x-show="editing">
+                      <input x-ref="inp" x-model="input" class="inline-input"
+                        @input="doFilter()" @keydown.tab="tabComplete($event)"
+                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                        @blur="save()">
+                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                        <template x-for="(opt, idx) in filtered" :key="idx">
+                          <li @click="input = opt; save()" x-text="opt"></li>
+                        </template>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="person-card__row" x-data="inlineField('person', person.id, 'name', operation_id)">
+                  <span class="person-card__label">Vorname: </span>
+                  <div class="inline-edit-wrapper">
+                    <span class="inline-editable" x-show="!editing" @click="open(person.name)" x-text="person.name || '—'"></span>
+                    <div x-show="editing">
+                      <input x-ref="inp" x-model="input" class="inline-input"
+                        @input="doFilter()" @keydown.tab="tabComplete($event)"
+                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                        @blur="save()">
+                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                        <template x-for="(opt, idx) in filtered" :key="idx">
+                          <li @click="input = opt; save()" x-text="opt"></li>
+                        </template>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="person-card__row"><span class="person-card__label">Geb. Datum: </span><span x-text="person.birthdate"></span></div>
+                <div class="person-card__row"><span class="person-card__label">Geschlecht: </span>  <span x-text="person.gender"></span></div>
+              </div>
+              <div>
+                <div class="person-card__row person-card__row--check">
+                  <span class="person-card__label2">Verletzt: </span>
+                  <input type="checkbox" class="inline-checkbox"
+                    :checked="!!person.hurt"
+                    @change="saveField('person', person.id, 'hurt', $event.target.checked ? 1 : 0, operation_id)">
+                </div>
+
+                <div class="person-card__row" x-data="inlineField('person', person.id, 'handover', operation_id)">
+                  <span class="person-card__label2">Übergabe: </span>
+                  <div class="inline-edit-wrapper">
+                    <span class="inline-editable" x-show="!editing" @click="open(person.handover)" x-text="person.handover || '—'"></span>
+                    <div x-show="editing">
+                      <input x-ref="inp" x-model="input" class="inline-input"
+                        @input="doFilter()" @keydown.tab="tabComplete($event)"
+                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                        @blur="save()">
+                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+                        <template x-for="(opt, idx) in filtered" :key="idx">
+                          <li @click="input = opt; save()" x-text="opt"></li>
+                        </template>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="person-card__row"><span class="person-card__label2">Info: </span>        <span x-text="person.info"></span></div>
+                <div class="person-card__row"><span class="person-card__label2">Triage: </span>      <span x-text="person.triage"></span></div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+    </div>
+  </template>
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/operation_edit.js') }}"></script>
+{% endblock %}

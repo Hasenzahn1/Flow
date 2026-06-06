@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 
 from core.db import init_db, migrate
 from pages import index
-from tools.operation_overview import operation_selection
+from tools.operation_overview import operation_overview
 
 # Init Flask
 app = Flask(__name__)
@@ -15,7 +15,7 @@ migrate()
 
 # Register Routes
 index.register(app)
-operation_selection.register(app)
+operation_overview.register(app, socketio)
 
 
 if __name__ == '__main__':
