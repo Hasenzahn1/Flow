@@ -91,6 +91,7 @@ document.addEventListener('alpine:init', () => {
 
     current_missions: Array.from(operation.missions).filter(m => m.status == 0 || m.status == 1),
     finished_missions: Array.from(operation.missions).filter(m => m.status == 2).sort((a, b) => (b.changed_at || 0) - (a.changed_at || 0)),
+    activeMissionId: null,
 
     getOptions(field, type) {
       const allMissions = [...this.current_missions, ...this.finished_missions];
@@ -159,6 +160,17 @@ document.addEventListener('alpine:init', () => {
         this.current_missions  = patch(this.current_missions);
         this.finished_missions = patch(this.finished_missions);
       });
+    },
+
+    handleKeydown(e) {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        this.addMission();
+      } else if ((e.key === 'p' || e.key === 'P') && this.activeMissionId) {
+        e.preventDefault();
+        this.addPerson(this.activeMissionId);
+      }
     },
 
     addMission() {

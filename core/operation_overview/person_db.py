@@ -10,7 +10,12 @@ def get_persons(mission_id) -> list[dict]:
 
 def add_person(mission_id, last_name, name, birthdate, gender, handover, info) -> dict:
     con = get_db()
-    number = con.execute("SELECT COALESCE(MAX(number), 0) + 1 AS n FROM overview_persons WHERE mission_id = ?", (mission_id,)).fetchone()["n"]
+    number = con.execute("""
+        SELECT COALESCE(MAX(p.number), 0) + 1 AS n
+        FROM overview_persons p
+        JOIN overview_missions m ON p.mission_id = m.id
+        WHERE m.operation_id = (SELECT operation_id FROM overview_missions WHERE id = ?)
+    """, (mission_id,)).fetchone()["n"]
     cur = con.execute("INSERT INTO overview_persons (mission_id, number, last_name, name, birthdate, gender, handover, info) VALUES (?,?,?,?,?,?,?,?)", (mission_id, number, last_name, name, birthdate, gender, handover, info))
     con.commit()
     new_id = cur.lastrowid

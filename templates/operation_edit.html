@@ -14,7 +14,10 @@
 {% endblock %}
 
 {% block content %}
-<section x-data='editPage({{ operation|tojson }})'>
+<section x-data='editPage({{ operation|tojson }})'
+  @keydown.window="handleKeydown($event)"
+  @mission-opened.window="activeMissionId = $event.detail.id"
+  @mission-closed.window="activeMissionId = null">
 
   <!-- ── Suche ─────────────────────────────────────────────── -->
   <div class="search-bar">
@@ -26,11 +29,11 @@
   <p class="empty-hint" x-show="current_missions.length === 0">Keine aktuellen Einsätze</p>
 
   <template x-for="(mission, i) in filteredMissions(current_missions)" :key="mission.id">
-    <div class="mission-card" x-data="{ open: false }" :class="'mission-card--status-' + mission.status">
+    <div class="mission-card" x-data="{ open: false }" :class="'mission-card--status-' + mission.status + (activeMissionId === mission.id ? ' mission-card--active' : '')">
       <div class="mission-triage-bar" :style="triageBarStyle(mission.persons)"></div>
 
       <!-- Row 1: Summary bar -->
-      <div class="mission-card__summary" @click="open = !open">
+      <div class="mission-card__summary" @click="open = !open; $dispatch(open ? 'mission-opened' : 'mission-closed', { id: mission.id })">
         <strong class="mission-summary__number" x-text="mission.number"></strong>
 
         <div class="mission-summary__status" @click.stop>
@@ -227,11 +230,11 @@
   <h2>Abgeschlossen (<span x-text="filteredMissions(finished_missions).length"></span>)</h2>
 
   <template x-for="(mission, i) in filteredMissions(finished_missions)" :key="mission.id">
-    <div class="mission-card" x-data="{ open: false }" :class="'mission-card--status-' + mission.status">
+    <div class="mission-card" x-data="{ open: false }" :class="'mission-card--status-' + mission.status + (activeMissionId === mission.id ? ' mission-card--active' : '')">
       <div class="mission-triage-bar" :style="triageBarStyle(mission.persons)"></div>
 
       <!-- Row 1: Summary bar -->
-      <div class="mission-card__summary" @click="open = !open">
+      <div class="mission-card__summary" @click="open = !open; $dispatch(open ? 'mission-opened' : 'mission-closed', { id: mission.id })">
         <strong class="mission-summary__number" x-text="mission.number"></strong>
 
         <div class="mission-summary__status" @click.stop>
