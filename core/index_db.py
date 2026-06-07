@@ -38,9 +38,9 @@ def update_tool(tool_id, **kwargs):
 
 def delete_tool(tool_id):
     con = get_db()
-    con.execute(f"DELETE FROM tools WHERE id = ?", (tool_id,))
+    cur = con.execute("DELETE FROM tools WHERE id = ?", (tool_id,))
     con.commit()
-    deleted = con.rowcount > 0
+    deleted = cur.rowcount > 0
     con.close()
     return deleted
 

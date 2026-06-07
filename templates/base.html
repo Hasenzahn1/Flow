@@ -14,12 +14,20 @@
   <header class="app-header">
     <div class="container app-header__inner">
       {% block header_extra %}{% endblock %}
-      <b>
-        21:00
-      </b>
+      <div class="app-header__clock" x-data="{
+        time: '',
+        date: '',
+        tick() {
+          const now = new Date();
+          this.time = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          this.date = now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+      }" x-init="tick(); setInterval(() => tick(), 1000)">
+        <b x-text="time"></b>
+        <span x-text="date"></span>
+      </div>
       <a href="/" class="app-header__brand">
-        <span class="app-header__dot" aria-hidden="true"></span>
-        FLOW
+        <img src="{{ url_for('static', filename='images/Logo.svg') }}" alt="FLOW" class="app-header__logo">
       </a>
     </div>
   </header>

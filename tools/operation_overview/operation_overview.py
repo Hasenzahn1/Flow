@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, jsonify, request
 from flask_socketio import join_room, emit
 
 from core.operation_overview.operation_db import get_operations, add_operation, get_operation
-from core.operation_overview.mission_db import get_missions, update_mission, add_mission
-from core.operation_overview.person_db import get_persons, update_person, add_person
+from core.operation_overview.mission_db import get_missions, update_mission, add_mission, delete_mission
+from core.operation_overview.person_db import get_persons, update_person, add_person, delete_person
 
 bp = Blueprint('operation_overview', __name__)
 
@@ -43,6 +43,21 @@ def register_socket_events(socketio):
         new_person = add_person(mission_id, '', '', None, '', '', '')
         emit('person_added', {'mission_id': mission_id, 'person': new_person}, room=f"operation_{operation_id}")
 
+    @socketio.on('delete_mission')
+    def on_delete_mission(data):
+        mission_id = data['mission_id']
+        operation_id = data['operation_id']
+        if delete_mission(mission_id):
+            emit('mission_deleted', {'mission_id': mission_id}, room=f"operation_{operation_id}")
+
+    @socketio.on('delete_person')
+    def on_delete_person(data):
+        person_id = data['person_id']
+        mission_id = data['mission_id']
+        operation_id = data['operation_id']
+        if delete_person(person_id):
+            emit('person_deleted', {'person_id': person_id, 'mission_id': mission_id}, room=f"operation_{operation_id}")
+
 @bp.route("/operation_overview")
 def operation_overview():
     operations = get_operations()
@@ -66,10 +81,17 @@ def operation_overview_list(operation_id):
     missions = get_missions(operation_id)
     for mission in missions:
         mission["persons"] = get_persons(mission["id"])
-    
     operation["missions"] = missions
-    
     return render_template("operation_edit.html", operation=operation)
+
+@bp.route("/api/operation_overview/<int:operation_id>")
+def api_operation_overview_get(operation_id):
+    operation = get_operation(operation_id)
+    missions = get_missions(operation_id)
+    for mission in missions:
+        mission["persons"] = get_persons(mission["id"])
+    operation["missions"] = missions
+    return jsonify(operation)
 
 def register(app, socketio):
     app.register_blueprint(bp)

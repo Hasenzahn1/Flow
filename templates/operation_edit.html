@@ -2,17 +2,32 @@
 
 {% block title %}Einsatzübersicht - FLOW{% endblock %}
 
-{% block header_extra %} <b>Einsatzübersicht - {{ operation.name }}</b>{% endblock %}
+{% block header_extra %}
+<div x-data class="header-operation">
+  <b>Einsatzübersicht - {{ operation.name }}</b>
+  <span class="connection-badge"
+    :class="$store.connection.online ? 'connection-badge--online' : 'connection-badge--offline'">
+    <span class="connection-badge__dot"></span>
+    <span x-text="$store.connection.online ? 'Verbunden' : 'Keine Verbindung'"></span>
+  </span>
+</div>
+{% endblock %}
 
 {% block content %}
 <section x-data='editPage({{ operation|tojson }})'>
 
+  <!-- ── Suche ─────────────────────────────────────────────── -->
+  <div class="search-bar">
+    <input class="search-bar__input" type="search" placeholder="Suche nach Ort, Einheit, Patient …" x-model="search">
+  </div>
+
   <!-- ── Aktuelle Einsätze ─────────────────────────────────── -->
-  <h2>Aktuell (<span x-text="current_missions.length"></span>)</h2>
+  <h2>Aktuell (<span x-text="filteredMissions(current_missions).length"></span>)</h2>
   <p class="empty-hint" x-show="current_missions.length === 0">Keine aktuellen Einsätze</p>
 
-  <template x-for="(mission, i) in current_missions" :key="i">
+  <template x-for="(mission, i) in filteredMissions(current_missions)" :key="mission.id">
     <div class="mission-card" x-data="{ open: false }" :class="'mission-card--status-' + mission.status">
+      <div class="mission-triage-bar" :style="triageBarStyle(mission.persons)"></div>
 
       <!-- Row 1: Summary bar -->
       <div class="mission-card__summary" @click="open = !open">
@@ -67,15 +82,19 @@
         </div>
 
         <span class="mission-summary__persons" x-text="mission.persons.length + ' Pat.'"></span>
+        <button class="delete-btn" @click.stop="deleteMission(mission.id, mission.number)" title="Einsatz löschen">&#x2715;</button>
         <span class="mission-card__chevron" :class="{ 'mission-card__chevron--open': open }">&#x25BC;</span>
       </div>
 
       <!-- Row 2: Description (always visible) -->
-      <textarea class="field-textarea"
-        :value="mission.description"
-        x-init="$nextTick(() => { $el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px' })"
-        @input="$el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px'"
-        @blur="saveField('mission', mission.id, 'description', $event.target.value, operation_id)"></textarea>
+      <div class="mission-description">
+        <span class="mission-description__label">Beschreibung:</span>
+        <textarea class="field-textarea"
+          :value="mission.description"
+          x-init="$nextTick(() => { $el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px' })"
+          @input="$el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px'"
+          @blur="saveField('mission', mission.id, 'description', $event.target.value, operation_id)"></textarea>
+      </div>
 
       <!-- Persons (expanded only) -->
       <div class="mission-persons" x-show="open">
@@ -83,7 +102,8 @@
           <div class="person-card" x-data="{ open: false }" :class="'person-card--triage-' + person.triage"
             x-effect="open && $nextTick(() => $el.querySelectorAll('.field-textarea').forEach(t => { t.style.height = '0'; t.style.height = t.scrollHeight + 'px' }))">
             <button class="person-card__header" @click="open = !open">
-              <span x-text="'Patient ' + person.number"></span>
+              <span x-text="'Patient ' + person.number" style="margin-right: 0.2rem"></span>
+              <span class="delete-btn delete-btn--person" @click.stop="deletePerson(person.id, person.number, mission.id)" title="Patient löschen">&#x2715;</span>
               <span class="person-card__chevron" :class="{ 'person-card__chevron--open': open }">&#x25BC;</span>
             </button>
             <div class="person-card__columns" x-show="open">
@@ -138,7 +158,7 @@
                 </div>
                 <div class="person-card__row">
                   <span class="person-card__label">Geschlecht: </span>
-                  <select class="inline-select"
+                  <select class="inline-select" style="text-align: left"
                     @change="saveField('person', person.id, 'gender', $event.target.value, operation_id)">
                     <option value="" :selected="!person.gender">—</option>
                     <option value="Männlich" :selected="person.gender == 'Männlich'">Männlich</option>
@@ -204,10 +224,11 @@
   <button class="add-mission-btn" @click="addMission()">+</button>
 
   <!-- ── Abgeschlossene Einsätze ───────────────────────────── -->
-  <h2>Abgeschlossen (<span x-text="finished_missions.length"></span>)</h2>
+  <h2>Abgeschlossen (<span x-text="filteredMissions(finished_missions).length"></span>)</h2>
 
-  <template x-for="(mission, i) in finished_missions" :key="i">
+  <template x-for="(mission, i) in filteredMissions(finished_missions)" :key="mission.id">
     <div class="mission-card" x-data="{ open: false }" :class="'mission-card--status-' + mission.status">
+      <div class="mission-triage-bar" :style="triageBarStyle(mission.persons)"></div>
 
       <!-- Row 1: Summary bar -->
       <div class="mission-card__summary" @click="open = !open">
@@ -262,15 +283,19 @@
         </div>
 
         <span class="mission-summary__persons" x-text="mission.persons.length + ' Pat.'"></span>
+        <button class="delete-btn" @click.stop="deleteMission(mission.id, mission.number)" title="Einsatz löschen">&#x2715;</button>
         <span class="mission-card__chevron" :class="{ 'mission-card__chevron--open': open }">&#x25BC;</span>
       </div>
 
       <!-- Row 2: Description (always visible) -->
-      <textarea class="field-textarea"
-        :value="mission.description"
-        x-init="$nextTick(() => { $el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px' })"
-        @input="$el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px'"
-        @blur="saveField('mission', mission.id, 'description', $event.target.value, operation_id)"></textarea>
+      <div class="mission-description">
+        <span class="mission-description__label">Beschreibung:</span>
+        <textarea class="field-textarea"
+          :value="mission.description"
+          x-init="$nextTick(() => { $el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px' })"
+          @input="$el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px'"
+          @blur="saveField('mission', mission.id, 'description', $event.target.value, operation_id)"></textarea>
+      </div>
 
       <!-- Persons (expanded only) -->
       <div class="mission-persons" x-show="open">
@@ -279,6 +304,7 @@
             x-effect="open && $nextTick(() => $el.querySelectorAll('.field-textarea').forEach(t => { t.style.height = '0'; t.style.height = t.scrollHeight + 'px' }))">
             <button class="person-card__header" @click="open = !open">
               <span x-text="'Patient ' + person.number"></span>
+              <span class="delete-btn delete-btn--person" @click.stop="deletePerson(person.id, person.number, mission.id)" title="Patient löschen">&#x2715;</span>
               <span class="person-card__chevron" :class="{ 'person-card__chevron--open': open }">&#x25BC;</span>
             </button>
             <div class="person-card__columns" x-show="open">
@@ -333,7 +359,7 @@
                 </div>
                 <div class="person-card__row">
                   <span class="person-card__label">Geschlecht: </span>
-                  <select class="inline-select"
+                  <select class="inline-select" style="text-align: right"
                     @change="saveField('person', person.id, 'gender', $event.target.value, operation_id)">
                     <option value="" :selected="!person.gender">—</option>
                     <option value="Männlich" :selected="person.gender == 'Männlich'">Männlich</option>

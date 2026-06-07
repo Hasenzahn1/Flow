@@ -16,17 +16,41 @@
 [x-cloak] { display: none !important; }
 
 
+.container {
+  max-width: 90%;
+  padding-inline: 1rem;
+}
+
 /* --- Header and footer -------------------------------------- */
 
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 .app-header__inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  padding-block: 0.6rem;
+  padding-block: 0rem;
+}
+.app-header__inner > :last-child {
+  justify-self: end;
+}
+.app-header__clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+.app-header__clock b {
+  font-size: 1.5rem;
+  letter-spacing: 0.05em;
+}
+.app-header__clock span {
+  font-size: 0.85rem;
 }
 .app-header__brand {
   display: inline-flex;
@@ -37,13 +61,53 @@
   text-decoration: none;
   color: inherit;
 }
-.app-header__dot {
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.15);
+.app-header__logo {
+  height: 2rem;
+  width: auto;
 }
+.header-operation {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.connection-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.connection-badge__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.connection-badge--online {
+  color: #22c55e;
+  border-color: #22c55e33;
+  background: #22c55e11;
+}
+.connection-badge--online .connection-badge__dot {
+  background: #22c55e;
+}
+.connection-badge--offline {
+  color: #ef4444;
+  border-color: #ef444433;
+  background: #ef444411;
+  animation: pulse-offline 1.5s ease-in-out infinite;
+}
+.connection-badge--offline .connection-badge__dot {
+  background: #ef4444;
+}
+@keyframes pulse-offline {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
 .app-footer {
   margin-top: 3rem;
   padding-block: 1rem;
@@ -178,9 +242,20 @@
 }
 
 
+/* --- Search bar -------------------------------------------- */
+
+.search-bar {
+  margin-bottom: 0.1rem;
+}
+.search-bar__input {
+  width: 100%;
+  margin: 0;
+}
+
 /* --- Mission card ------------------------------------------- */
 
 .mission-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -190,6 +265,16 @@
   border-left: 8px solid var(--accent);
   border-radius: 10px;
   background: var(--surface);
+}
+
+.mission-triage-bar {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  border-radius: 0 10px 10px 0;
+  pointer-events: none;
 }
 
 .mission-card--status-0 { border-left-color: var(--accent); }
@@ -258,6 +343,7 @@
   gap: 0.75rem;
   align-items: stretch;
   overflow-x: auto;
+  overflow-y: hidden;
   min-width: 0;
 }
 
@@ -293,13 +379,38 @@
   background: transparent;
   color: var(--muted-text);
   font-size: 1.5rem;
-  line-height: 1;
   cursor: pointer;
   transition: border-color 0.1s, color 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .add-person-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* Delete buttons */
+.delete-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.4rem;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+  margin-right: 0.2rem;
+}
+.delete-btn:hover {
+  color: #e53e3e;
+  background: rgba(229, 62, 62, 0.1);
+}
+.delete-btn--person {
+  margin-left: auto;
+  font-size: 0.75rem;
 }
 
 /* Individual person card */
@@ -323,7 +434,6 @@
 
 .person-card__header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   width: 100%;
   background: none;
@@ -370,12 +480,26 @@
   overflow-wrap: break-word;
 }
 
+.mission-description {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.mission-description__label {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--muted-text);
+}
+.mission-description .field-textarea {
+  flex: 1;
+}
+
 .field-textarea {
   margin: 0px !important;
   padding: 0.2rem 0.35rem !important;
   font-size: 0.9rem;
   resize: none;
-  overflow: hidden;
+  overflow: hidden !important;
   min-height: 0 !important;
   width: 100%;
 }
@@ -428,6 +552,7 @@
   color: inherit !important;
   cursor: pointer;
   transition: border-color 0.1s;
+  text-align: right;
 }
 
 .inline-select:hover,

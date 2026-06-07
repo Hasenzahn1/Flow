@@ -11,7 +11,7 @@ def get_missions(operation_id) -> list[dict]:
 
 def add_mission(operation_id, place, unit, description) -> dict:
     con = get_db()
-    number = con.execute("SELECT COALESCE(MAX(number), 0) + 1 AS n FROM overview_missions").fetchone()["n"]
+    number = con.execute("SELECT COALESCE(MAX(number), 0) + 1 AS n FROM overview_missions WHERE operation_id = ?", (operation_id,)).fetchone()["n"]
     cur = con.execute("INSERT INTO overview_missions (operation_id, number, place, unit, description) VALUES (?,?,?,?,?)", (operation_id, number, place, unit, description))
     con.commit()
     new_id = cur.lastrowid
@@ -38,9 +38,9 @@ def update_mission(mission_id, **kwargs):
 
 def delete_mission(mission_id):
     con = get_db()
-    con.execute(f"DELETE FROM overview_missions WHERE id = ?", (mission_id))
+    cur = con.execute("DELETE FROM overview_missions WHERE id = ?", (mission_id,))
     con.commit()
-    deleted = con.rowcount > 0
+    deleted = cur.rowcount > 0
     con.close()
     return deleted
 

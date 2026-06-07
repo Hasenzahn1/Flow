@@ -32,9 +32,9 @@ def update_operation(operation_id, **kwargs):
 
 def delete_operation(operation_id):
     con = get_db()
-    con.execute(f"DELETE FROM overview_operations WHERE id = ?", (operation_id,))
+    cur = con.execute("DELETE FROM overview_operations WHERE id = ?", (operation_id,))
     con.commit()
-    deleted = con.rowcount > 0
+    deleted = cur.rowcount > 0
     con.close()
     return deleted
 

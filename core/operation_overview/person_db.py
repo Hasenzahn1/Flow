@@ -10,7 +10,7 @@ def get_persons(mission_id) -> list[dict]:
 
 def add_person(mission_id, last_name, name, birthdate, gender, handover, info) -> dict:
     con = get_db()
-    number = con.execute("SELECT COALESCE(MAX(number), 0) + 1 AS n FROM overview_persons").fetchone()["n"]
+    number = con.execute("SELECT COALESCE(MAX(number), 0) + 1 AS n FROM overview_persons WHERE mission_id = ?", (mission_id,)).fetchone()["n"]
     cur = con.execute("INSERT INTO overview_persons (mission_id, number, last_name, name, birthdate, gender, handover, info) VALUES (?,?,?,?,?,?,?,?)", (mission_id, number, last_name, name, birthdate, gender, handover, info))
     con.commit()
     new_id = cur.lastrowid
@@ -31,11 +31,11 @@ def update_person(person_id, **kwargs):
     con.close()
     return get_person(person_id)
 
-def delete_mission(person_id):
+def delete_person(person_id):
     con = get_db()
-    con.execute(f"DELETE FROM overview_persons WHERE id = ?", (person_id,))
+    cur = con.execute("DELETE FROM overview_persons WHERE id = ?", (person_id,))
     con.commit()
-    deleted = con.rowcount > 0
+    deleted = cur.rowcount > 0
     con.close()
     return deleted
 
