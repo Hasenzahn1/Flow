@@ -19,10 +19,12 @@ CREATE TABLE IF NOT EXISTS overview_missions (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     operation_id    INTEGER,
     number          INTEGER,
+    timestamp       INTEGER DEFAULT (strftime('%s', 'now')),
     place           TEXT,
     unit            TEXT,
     description     TEXT,
     status          INTEGER DEFAULT 0,
+    changed_at     INTEGER,
     FOREIGN KEY(operation_id) REFERENCES overview_operations(id) ON DELETE CASCADE
 );
 

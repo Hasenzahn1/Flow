@@ -86,7 +86,7 @@ document.addEventListener('alpine:init', () => {
     operation_date: new Date(operation.date * 1000).toLocaleDateString('de-DE'),
 
     current_missions: Array.from(operation.missions).filter(m => m.status == 0 || m.status == 1),
-    finished_missions: Array.from(operation.missions).filter(m => m.status == 2),
+    finished_missions: Array.from(operation.missions).filter(m => m.status == 2).sort((a, b) => (b.changed_at || 0) - (a.changed_at || 0)),
 
     getOptions(field, type) {
       const allMissions = [...this.current_missions, ...this.finished_missions];
@@ -104,7 +104,7 @@ document.addEventListener('alpine:init', () => {
         const all = [...this.current_missions, ...this.finished_missions]
           .map(m => m.id === updated.id ? { ...m, ...updated } : m);
         this.current_missions  = all.filter(m => m.status == 0 || m.status == 1);
-        this.finished_missions = all.filter(m => m.status == 2);
+        this.finished_missions = all.filter(m => m.status == 2).sort((a, b) => (b.changed_at || 0) - (a.changed_at || 0));
       });
 
       socket.on('person_updated', (updated) => {
@@ -115,6 +115,36 @@ document.addEventListener('alpine:init', () => {
         this.current_missions  = patch(this.current_missions);
         this.finished_missions = patch(this.finished_missions);
       });
+
+      socket.on('mission_added', (mission) => {
+        this.current_missions = [...this.current_missions, mission];
+      });
+
+      socket.on('person_added', ({ mission_id, person }) => {
+        const patch = (list) => list.map(m =>
+          m.id === mission_id ? { ...m, persons: [...m.persons, person] } : m
+        );
+        this.current_missions  = patch(this.current_missions);
+        this.finished_missions = patch(this.finished_missions);
+      });
+    },
+
+    addMission() {
+      socket.emit('add_mission', { operation_id: this.operation_id });
+    },
+
+    addPerson(missionId) {
+      socket.emit('add_person', { mission_id: missionId, operation_id: this.operation_id });
+    },
+
+    formatDateTime(ts) {
+      if (!ts) return '—';
+      return new Date(ts * 1000).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    },
+
+    formatTime(ts) {
+        if (!ts) return '—';
+        return new Date(ts * 1000).toLocaleString('de-DE', { hour: '2-digit', minute: '2-digit' });
     },
 
     saveField(type, id, field, value, operationId) {

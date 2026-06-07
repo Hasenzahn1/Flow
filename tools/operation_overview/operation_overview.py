@@ -2,8 +2,8 @@ from flask import Blueprint, render_template, jsonify, request
 from flask_socketio import join_room, emit
 
 from core.operation_overview.operation_db import get_operations, add_operation, get_operation
-from core.operation_overview.mission_db import get_missions, update_mission
-from core.operation_overview.person_db import get_persons, update_person
+from core.operation_overview.mission_db import get_missions, update_mission, add_mission
+from core.operation_overview.person_db import get_persons, update_person, add_person
 
 bp = Blueprint('operation_overview', __name__)
 
@@ -28,6 +28,20 @@ def register_socket_events(socketio):
         value = data['value']
         updated = update_person(person_id, **{field: value})
         emit('person_updated', updated, room=f"operation_{data['operation_id']}")
+
+    @socketio.on('add_mission')
+    def on_add_mission(data):
+        operation_id = data['operation_id']
+        new_mission = add_mission(operation_id, '', '', '')
+        new_mission['persons'] = []
+        emit('mission_added', new_mission, room=f"operation_{operation_id}")
+
+    @socketio.on('add_person')
+    def on_add_person(data):
+        mission_id = data['mission_id']
+        operation_id = data['operation_id']
+        new_person = add_person(mission_id, '', '', None, '', '', '')
+        emit('person_added', {'mission_id': mission_id, 'person': new_person}, room=f"operation_{operation_id}")
 
 @bp.route("/operation_overview")
 def operation_overview():

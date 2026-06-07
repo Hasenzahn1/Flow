@@ -1,16 +1,17 @@
+import time
 from core.db import get_db, init_db
 
-ALLOWED_COLUMNS = {"place", "unit", "description", "status"}
+ALLOWED_COLUMNS = {"place", "unit", "description", "status", "changed_at"}
 
 def get_missions(operation_id) -> list[dict]:
     con = get_db()
-    rows = con.execute(f"SELECT * FROM overview_missions WHERE operation_id = {operation_id} ORDER BY number").fetchall()
+    rows = con.execute(f"SELECT * FROM overview_missions WHERE operation_id = {operation_id} ORDER BY timestamp").fetchall()
     con.close()
     return [dict(row) for row in rows]
 
 def add_mission(operation_id, place, unit, description) -> dict:
     con = get_db()
-    numer = con.execute("SELECT COALESCE(MAX(number), 0) + 1 AS n FROM overview_missions").fetchone()["n"]
+    number = con.execute("SELECT COALESCE(MAX(number), 0) + 1 AS n FROM overview_missions").fetchone()["n"]
     cur = con.execute("INSERT INTO overview_missions (operation_id, number, place, unit, description) VALUES (?,?,?,?,?)", (operation_id, number, place, unit, description))
     con.commit()
     new_id = cur.lastrowid
@@ -22,8 +23,12 @@ def update_mission(mission_id, **kwargs):
     if not columns:
         return get_mission(mission_id)
 
+    columns['changed_at'] = int(time.time())
+
     assign = ", ".join(f"{column} = ?" for column in columns.keys())
-    values = list(kwargs.values()) + [mission_id]
+    values = list(columns.values()) + [mission_id]
+
+    print(assign, values)
 
     con = get_db()
     con.execute(f"UPDATE overview_missions SET {assign} WHERE id = ?", values)

@@ -2,5 +2,6 @@ data/app.db
 data/app.db-shm
 data/app.db-wal
 
+__pycache__
 */__pycache__
 */*/__pycache__
