@@ -1,8 +1,17 @@
+import json
+import os
+import subprocess
+import time
+from urllib.request import urlopen
+
 from flask import Blueprint, render_template, jsonify, request
 
 from core.index_db import get_tools, add_tool, get_tool, update_tool, delete_tool
 
 bp = Blueprint('index', __name__)
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_upd_cache = {'ts': 0, 'available': False}
 
 
 @bp.route('/')
@@ -39,6 +48,29 @@ def api_tool_update(tool_id):
 def api_tool_delete(tool_id):
     if not delete_tool(tool_id): return jsonify({'error': 'Tool not found'}), 404
     return jsonify({'ok': True}), 404
+
+
+@bp.route('/api/update/check')
+def api_update_check():
+    now = time.time()
+    if now - _upd_cache['ts'] < 600:
+        return jsonify({'available': _upd_cache['available']})
+    try:
+        local = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=_ROOT).decode().strip()
+        with urlopen('https://api.github.com/repos/Hasenzahn1/Flow/commits/master', timeout=5) as r:
+            remote = json.loads(r.read())['sha']
+        _upd_cache['available'] = local != remote
+    except Exception:
+        _upd_cache['available'] = False
+    _upd_cache['ts'] = now
+    return jsonify({'available': _upd_cache['available']})
+
+
+@bp.route('/api/update/apply', methods=['POST'])
+def api_update_apply():
+    bat = os.path.join(_ROOT, 'update.bat')
+    subprocess.Popen([bat, str(os.getpid())], creationflags=subprocess.CREATE_NEW_CONSOLE)
+    return jsonify({'ok': True})
 
 
 def register(app):

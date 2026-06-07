@@ -13,7 +13,16 @@
 
   <header class="app-header">
     <div class="container app-header__inner">
-      {% block header_extra %}{% endblock %}
+      <div class="app-header__left">
+        {% block header_extra %}{% endblock %}
+        <div x-data="{upd:false,async chk(){try{upd=(await(await fetch('/api/update/check')).json()).available}catch(e){}}}"
+             x-init="chk();setInterval(()=>chk(),600000)">
+          <button x-show="upd" style="display:none" class="update-btn"
+                  @click="if(confirm('Update verfügbar – Server wird kurz neugestartet. Fortfahren?'))fetch('/api/update/apply',{method:'POST'})">
+            &#8593; Update
+          </button>
+        </div>
+      </div>
       <div class="app-header__clock" x-data="{
         time: '',
         date: '',
