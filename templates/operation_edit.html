@@ -22,13 +22,11 @@
           <div class="inline-edit-wrapper">
             <span class="inline-editable" x-show="!editing" @click="open(mission.place)" x-text="mission.place || '—'"></span>
             <div x-show="editing">
-              <div class="inline-sizer">
-                <span x-text="input || '—'" aria-hidden="true"></span>
-                <input x-ref="inp" x-model="input"
-                  @input="doFilter()" @keydown.tab="tabComplete($event)"
-                  @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                  @blur="save()">
-              </div>
+              <input x-ref="inp" x-model="input" class="inline-input"
+                :size="Math.max(2, (input || '—').length)"
+                @input="doFilter()" @keydown.tab="tabComplete($event)"
+                @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                @blur="save()">
               <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
                 <template x-for="(opt, idx) in filtered" :key="idx">
                   <li @click="input = opt; save()" x-text="opt"></li>
@@ -43,13 +41,11 @@
           <div class="inline-edit-wrapper">
             <span class="inline-editable" x-show="!editing" @click="open(mission.unit)" x-text="mission.unit || '—'"></span>
             <div x-show="editing">
-              <div class="inline-sizer">
-                <span x-text="input || '—'" aria-hidden="true"></span>
-                <input x-ref="inp" x-model="input"
-                  @input="doFilter()" @keydown.tab="tabComplete($event)"
-                  @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                  @blur="save()">
-              </div>
+              <input x-ref="inp" x-model="input" class="inline-input"
+                :size="Math.max(2, (input || '—').length)"
+                @input="doFilter()" @keydown.tab="tabComplete($event)"
+                @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                @blur="save()">
               <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
                 <template x-for="(opt, idx) in filtered" :key="idx">
                   <li @click="input = opt; save()" x-text="opt"></li>
@@ -87,6 +83,7 @@
                     <span class="inline-editable" x-show="!editing" @click="open(person.last_name)" x-text="person.last_name || '—'"></span>
                     <div x-show="editing">
                       <input x-ref="inp" x-model="input" class="inline-input"
+                        :size="Math.max(2, (input || '—').length)"
                         @input="doFilter()" @keydown.tab="tabComplete($event)"
                         @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
                         @blur="save()">
@@ -105,6 +102,7 @@
                     <span class="inline-editable" x-show="!editing" @click="open(person.name)" x-text="person.name || '—'"></span>
                     <div x-show="editing">
                       <input x-ref="inp" x-model="input" class="inline-input"
+                        :size="Math.max(2, (input || '—').length)"
                         @input="doFilter()" @keydown.tab="tabComplete($event)"
                         @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
                         @blur="save()">
@@ -152,6 +150,7 @@
                     <span class="inline-editable" x-show="!editing" @click="open(person.handover)" x-text="person.handover || '—'"></span>
                     <div x-show="editing">
                       <input x-ref="inp" x-model="input" class="inline-input"
+                        :size="Math.max(2, (input || '—').length)"
                         @input="doFilter()" @keydown.tab="tabComplete($event)"
                         @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
                         @blur="save()">
@@ -197,13 +196,11 @@
           <div class="inline-edit-wrapper">
             <span class="inline-editable" x-show="!editing" @click="open(mission.place)" x-text="mission.place || '—'"></span>
             <div x-show="editing">
-              <div class="inline-sizer">
-                <span x-text="input || '—'" aria-hidden="true"></span>
-                <input x-ref="inp" x-model="input"
-                  @input="doFilter()" @keydown.tab="tabComplete($event)"
-                  @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                  @blur="save()">
-              </div>
+              <input x-ref="inp" x-model="input" class="inline-input"
+                :size="Math.max(2, (input || '—').length)"
+                @input="doFilter()" @keydown.tab="tabComplete($event)"
+                @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                @blur="save()">
               <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
                 <template x-for="(opt, idx) in filtered" :key="idx">
                   <li @click="input = opt; save()" x-text="opt"></li>
@@ -218,13 +215,11 @@
           <div class="inline-edit-wrapper">
             <span class="inline-editable" x-show="!editing" @click="open(mission.unit)" x-text="mission.unit || '—'"></span>
             <div x-show="editing">
-              <div class="inline-sizer">
-                <span x-text="input || '—'" aria-hidden="true"></span>
-                <input x-ref="inp" x-model="input"
-                  @input="doFilter()" @keydown.tab="tabComplete($event)"
-                  @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                  @blur="save()">
-              </div>
+              <input x-ref="inp" x-model="input" class="inline-input"
+                :size="Math.max(2, (input || '—').length)"
+                @input="doFilter()" @keydown.tab="tabComplete($event)"
+                @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+                @blur="save()">
               <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
                 <template x-for="(opt, idx) in filtered" :key="idx">
                   <li @click="input = opt; save()" x-text="opt"></li>
@@ -262,6 +257,7 @@
                     <span class="inline-editable" x-show="!editing" @click="open(person.last_name)" x-text="person.last_name || '—'"></span>
                     <div x-show="editing">
                       <input x-ref="inp" x-model="input" class="inline-input"
+                        :size="Math.max(2, (input || '—').length)"
                         @input="doFilter()" @keydown.tab="tabComplete($event)"
                         @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
                         @blur="save()">
@@ -280,6 +276,7 @@
                     <span class="inline-editable" x-show="!editing" @click="open(person.name)" x-text="person.name || '—'"></span>
                     <div x-show="editing">
                       <input x-ref="inp" x-model="input" class="inline-input"
+                        :size="Math.max(2, (input || '—').length)"
                         @input="doFilter()" @keydown.tab="tabComplete($event)"
                         @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
                         @blur="save()">
@@ -327,6 +324,7 @@
                     <span class="inline-editable" x-show="!editing" @click="open(person.handover)" x-text="person.handover || '—'"></span>
                     <div x-show="editing">
                       <input x-ref="inp" x-model="input" class="inline-input"
+                        :size="Math.max(2, (input || '—').length)"
                         @input="doFilter()" @keydown.tab="tabComplete($event)"
                         @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
                         @blur="save()">

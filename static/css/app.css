@@ -331,6 +331,9 @@
 /* --- Inline select (status dropdown) ------------------------ */
 
 .inline-select {
+  -webkit-appearance: none;
+  appearance: none;
+  width: auto !important;
   padding: 0 !important;
   margin: 0 !important;
   height: auto !important;
@@ -371,7 +374,7 @@
   border-bottom: 1px dashed transparent;
   transition: border-color 0.1s;
   display: inline-block;
-  min-width: 2rem;
+  min-width: 1rem;
   white-space: nowrap;
 }
 
@@ -380,7 +383,9 @@
 }
 
 .inline-input {
-  width: 100%;
+  field-sizing: content;
+  width: auto !important;
+  min-width: 2ch;
   padding: 0 !important;
   margin: 0 !important;
   height: auto !important;
@@ -400,13 +405,14 @@
 /* Auto-width input: invisible mirror span drives the width */
 .inline-sizer {
   display: inline-grid;
+  width: 100%;
 }
 .inline-sizer > span,
 .inline-sizer > input {
   grid-area: 1 / 1;
   font: inherit;
   /*padding: 0.1rem 0.25rem;*/
-  min-width: 3rem;
+  min-width: 1rem;
   white-space: pre;
 }
 .inline-sizer > span {
