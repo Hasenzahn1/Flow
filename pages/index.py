@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import time
+import sys
 from urllib.request import urlopen
 
 from flask import Blueprint, render_template, jsonify, request
@@ -68,8 +69,12 @@ def api_update_check():
 
 @bp.route('/api/update/apply', methods=['POST'])
 def api_update_apply():
-    bat = os.path.join(_ROOT, 'update.bat')
-    subprocess.Popen([bat, str(os.getpid())], creationflags=subprocess.CREATE_NEW_CONSOLE)
+    if sys.platform == 'win32':
+        script = os.path.join(_ROOT, 'update.bat')
+        subprocess.Popen([script, str(os.getpid())], creationflags=subprocess.CREATE_NEW_CONSOLE)
+    else:
+        script = os.path.join(_ROOT, 'update.sh')
+        subprocess.Popen(['bash', script, str(os.getpid())])
     return jsonify({'ok': True})
 
 
