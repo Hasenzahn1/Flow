@@ -1,9 +1,14 @@
-from flask import Blueprint, render_template, jsonify, request
+import datetime
+import os
+from io import BytesIO
+
+from flask import Blueprint, render_template, jsonify, request, send_file
 from flask_socketio import join_room, emit
 
 from core.operation_overview.operation_db import get_operations, add_operation, get_operation
 from core.operation_overview.mission_db import get_missions, update_mission, add_mission, delete_mission
 from core.operation_overview.person_db import get_persons, update_person, add_person, delete_person
+from core.operation_overview.pdf_export import generate_operation_pdf
 
 bp = Blueprint('operation_overview', __name__)
 
@@ -62,7 +67,7 @@ def register_socket_events(socketio):
 def operation_overview():
     operations = get_operations()
     print(operations)
-    return render_template("operation_selection.html", operations=operations)
+    return render_template("operation_overview.html", operations=operations)
 
 @bp.route("/api/operation_overview", methods=["POST"])
 def api_operation_overview_create():
@@ -92,6 +97,32 @@ def api_operation_overview_get(operation_id):
         mission["persons"] = get_persons(mission["id"])
     operation["missions"] = missions
     return jsonify(operation)
+
+@bp.route("/api/operation_overview/<int:operation_id>/export")
+def export_operation_pdf(operation_id):
+    operation = get_operation(operation_id)
+    missions = get_missions(operation_id)
+    for mission in missions:
+        mission["persons"] = get_persons(mission["id"])
+    operation["missions"] = missions
+
+    pdf_bytes = generate_operation_pdf(operation)
+
+    export_path = os.getenv("PDF_EXPORT_PATH", "").strip()
+    if export_path:
+        os.makedirs(export_path, exist_ok=True)
+        filename = f"lage_{operation_id}_{datetime.date.today()}.pdf"
+        with open(os.path.join(export_path, filename), "wb") as f:
+            f.write(pdf_bytes)
+
+    safe_name = (operation.get("name") or str(operation_id)).replace(" ", "_")
+    return send_file(
+        BytesIO(pdf_bytes),
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name=f"Lage_{safe_name}.pdf",
+    )
+
 
 def register(app, socketio):
     app.register_blueprint(bp)

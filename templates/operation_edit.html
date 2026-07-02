@@ -22,6 +22,8 @@
   <!-- ── Suche ─────────────────────────────────────────────── -->
   <div class="search-bar">
     <input class="search-bar__input" type="search" placeholder="Suche nach Ort, Einheit, Patient …" x-model="search">
+    <a href="/api/operation_overview/{{ operation.id }}/export"
+       class="btn-export" title="Als PDF exportieren">&#x2193; PDF</a>
   </div>
 
   <!-- ── Aktuelle Einsätze ─────────────────────────────────── -->

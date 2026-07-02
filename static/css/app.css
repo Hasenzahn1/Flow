@@ -261,11 +261,35 @@
 /* --- Search bar -------------------------------------------- */
 
 .search-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.1rem;
 }
 .search-bar__input {
-  width: 100%;
+  flex: 1;
   margin: 0;
+}
+
+/* --- Export button ------------------------------------------ */
+
+.btn-export {
+  display: inline-block;
+  padding: 0.35em 0.75em;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-export:hover {
+  background: var(--accent);
+  color: #fff;
 }
 
 /* --- Mission card ------------------------------------------- */

@@ -22,6 +22,7 @@
         <tr>
           <th>Name</th>
           <th>Datum</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -40,6 +41,10 @@
           >
             <td x-text="row ? row.name : ''"></td>
             <td x-text="row ? row.date : ''"></td>
+            <td>
+              <a x-show="row" :href="'/api/operation_overview/' + row.id + '/export'"
+                 class="btn-export" title="Als PDF exportieren" @click.stop>&#x2193; PDF</a>
+            </td>
           </tr>
         </template>
       </tbody>
@@ -50,5 +55,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/operation_selection.js') }}"></script>
+<script src="{{ url_for('static', filename='js/operation_overview.js') }}"></script>
 {% endblock %}
