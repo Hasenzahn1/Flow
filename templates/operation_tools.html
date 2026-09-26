@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% from "_icons.html" import icon_chevron_right, icon_users, icon_user_plus, icon_vehicle %}
+
+{% block title %}{{ operation.name }} &middot; FLOW{% endblock %}
+{% block header_extra %}<a href="/operation_overview" class="topbar__breadcrumb-link">Lagen</a>{{ icon_chevron_right('topbar__sep') }}<span class="topbar__operation-name">{{ operation.name }}</span>{% endblock %}
+
+{% block content %}
+<section class="home-page operation-tools-page">
+  <div class="home-page__inner">
+    <header class="home-hero">
+      <div class="home-hero__copy">
+        <h1 class="hero__title">{{ operation.name }}</h1>
+        <p class="hero__subtitle">Wähle einen Bereich für diese Lage aus.</p>
+      </div>
+    </header>
+
+    <div class="tool-grid" aria-label="Bereiche der Lage {{ operation.name }}">
+      <a class="tool-card tool-card--blue" href="/operation_overview/{{ operation.id }}/patients">
+        <span class="tool-card__icon">{{ icon_users() }}</span>
+        <h2 class="tool-card__title">Patientenübersicht {{ icon_chevron_right() }}</h2>
+        <p class="tool-card__desc">Patienten erfassen, zuordnen<br>und dokumentieren.</p>
+        <div class="tool-card__stat">{{ icon_users() }} <strong>{{ operation.participant_count }}</strong> Patient{{ 'en' if operation.participant_count != 1 else '' }}</div>
+      </a>
+
+      <a class="tool-card tool-card--green" href="/operation_overview/{{ operation.id }}/helpers">
+        <span class="tool-card__icon">{{ icon_user_plus() }}</span>
+        <h2 class="tool-card__title">Helferregistrierung {{ icon_chevron_right() }}</h2>
+        <p class="tool-card__desc">Helfer für diese Lage<br>registrieren und verwalten.</p>
+        <div class="tool-card__stat">{{ icon_user_plus() }} Helfer erfassen</div>
+      </a>
+
+      <a class="tool-card tool-card--cyan" href="/operation_overview/{{ operation.id }}/vehicles">
+        <span class="tool-card__icon">{{ icon_vehicle() }}</span>
+        <h2 class="tool-card__title">Fahrzeugübersicht {{ icon_chevron_right() }}</h2>
+        <p class="tool-card__desc">Fahrzeuge verwalten, besetzen<br>und als Vorlagen speichern.</p>
+        <div class="tool-card__stat">{{ icon_vehicle() }} <strong>{{ operation.vehicle_count }}</strong> Fahrzeug{{ 'e' if operation.vehicle_count != 1 else '' }}</div>
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

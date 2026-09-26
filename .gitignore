@@ -5,3 +5,6 @@ data/app.db-wal
 __pycache__
 */__pycache__
 */*/__pycache__
+
+data/tls/
+data/vehicle_templates/

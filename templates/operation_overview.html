@@ -1,59 +1,152 @@
 {% extends "base.html" %}
 
-{% block title %}Einsatzübersicht - FLOW{% endblock %}
+{% from "_icons.html" import icon_alert, icon_check_circle, icon_file_plus, icon_search, icon_plus, icon_users, icon_external_link, icon_file, icon_info %}
 
-{% block header_extra %} <b>Einsatzübersicht - Lageauswahl</b>{% endblock %}
+{% block title %}Lagenübersicht &middot; FLOW{% endblock %}
+{% block header_extra %}Lagen{% endblock %}
 
 {% block content %}
-<!--
-  Jinja embeds the active buttons directly as the initial state of the Alpine
-  object (option A). |tojson serializes the list safely and HTML-escaped as the
-  argument.
--->
-<section x-data='selectionPage({{ operations|tojson }})'>
+<section class="operations-page"
+         x-data='selectionPage({{ operations|tojson }})'
+         @keydown.escape.window="exportModalOpen ? closeExportModal() : closeCreateModal()">
+  <div class="operations-page__inner">
+    <header class="operations-hero">
+      <div class="operations-hero__copy">
+        <h1>Lagenübersicht</h1>
+        <p>Lagen verwalten, öffnen und dokumentieren.</p>
+      </div>
+    </header>
 
-  <div class="page-head">
-    <h1>Lageauswahl</h1>
+    <section class="operations-stats" aria-label="Lagenstatistik">
+      <article class="operations-stat operations-stat--red">
+        <span class="operations-stat__icon">{{ icon_alert() }}</span>
+        <span><strong>{{ operations|length }}</strong><small>aktive Lage{{ 'n' if operations|length != 1 else '' }}</small></span>
+      </article>
+      <article class="operations-stat operations-stat--green">
+        <span class="operations-stat__icon">{{ icon_check_circle() }}</span>
+        <span><strong>0</strong><small>abgeschlossene Lagen</small></span>
+      </article>
+      <article class="operations-stat operations-stat--blue">
+        <span class="operations-stat__icon">{{ icon_file_plus() }}</span>
+        <span><small>Letzter Export</small><strong class="operations-stat__export">Noch keiner</strong></span>
+      </article>
+    </section>
+
+    <section class="operations-panel" aria-labelledby="operations-table-title">
+      <h2 id="operations-table-title" class="sr-only">Vorhandene Lagen</h2>
+      <div class="operations-panel__toolbar">
+        <label class="operations-search">
+          {{ icon_search() }}
+          <input type="search" x-model="query" placeholder="Lage suchen …" aria-label="Lage suchen">
+        </label>
+        <button type="button" class="operations-create-btn" @click="openCreateModal()">
+          {{ icon_plus() }} Neue Lage
+        </button>
+      </div>
+
+      <div class="operations-table-wrap">
+        <table class="operations-table">
+          <thead>
+            <tr>
+              <th>Lage <span class="sort-mark">⌃⌄</span></th>
+              <th>Datum <span class="sort-mark">⌃⌄</span></th>
+              <th>Status <span class="sort-mark">⌃⌄</span></th>
+              <th>Beteiligte <span class="sort-mark">⌃⌄</span></th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="row in filteredRows" :key="row.id">
+              <tr class="operation-row" @dblclick="openOperation(row.id)">
+                <td>
+                  <span class="operation-name">
+                    <span class="operation-name__icon">{{ icon_alert() }}</span>
+                    <strong x-text="row.name"></strong>
+                  </span>
+                </td>
+                <td class="operation-date" x-text="row.formattedDate"></td>
+                <td><span class="operation-status">Aktiv</span></td>
+                <td>
+                  <span class="operation-participants">{{ icon_users() }} <span x-text="row.participant_count"></span></span>
+                </td>
+                <td>
+                  <span class="operation-actions">
+                    <a :href="'/operation_overview/' + row.id" class="operation-open-btn" @click.stop>
+                      {{ icon_external_link() }} Öffnen
+                    </a>
+                    <button type="button" class="operation-export-btn" title="Export auswählen"
+                            aria-label="Export auswählen" @click.stop="openExportModal(row)">
+                      {{ icon_file() }}
+                    </button>
+                  </span>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="filteredRows.length === 0" x-cloak>
+              <td colspan="5" class="operations-empty" x-text="query ? 'Keine passende Lage gefunden.' : 'Noch keine Lage vorhanden.'"></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="operations-panel__footer">
+        <span>{{ icon_info() }} Doppelklick öffnet eine Lage.</span>
+        <span><strong x-text="filteredRows.length"></strong> <span x-text="filteredRows.length === 1 ? 'Lage' : 'Lagen'"></span> insgesamt</span>
+      </footer>
+    </section>
   </div>
 
-  <div class="table-scroll">
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Datum</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class="row-create">
-          <td>
-            <input type="text" x-model="newName" placeholder="Neue Lage …" @keydown.enter="createoperation()">
-          </td>
-          <td>
-            <button class="small" @click="createoperation()">+</button>
-          </td>
-        </tr>
-        <template x-for="(row, i) in rows" :key="i">
-          <tr
-            :class="row ? 'row-selectable' : ''"
-            @dblclick="row && (window.location.href = '/operation_overview/' + row.id)"
-          >
-            <td x-text="row ? row.name : ''"></td>
-            <td x-text="row ? row.date : ''"></td>
-            <td>
-              <a x-show="row" :href="'/api/operation_overview/' + row.id + '/export'"
-                 class="btn-export" title="Als PDF exportieren" @click.stop>&#x2193; PDF</a>
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+  <div class="operation-modal" x-show="createModalOpen" x-cloak @click.self="closeCreateModal()">
+    <section class="operation-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="create-operation-title">
+      <button type="button" class="operation-modal__close" aria-label="Dialog schließen" @click="closeCreateModal()">×</button>
+      <span class="operation-modal__icon">{{ icon_plus() }}</span>
+      <h2 id="create-operation-title">Neue Lage erstellen</h2>
+      <p>Vergib einen eindeutigen Namen für die neue Lage.</p>
+      <form @submit.prevent="createOperation()">
+        <label for="operation-name">Bezeichnung</label>
+        <input id="operation-name" x-ref="nameInput" x-model="newName" type="text"
+               maxlength="120" autocomplete="off" placeholder="z. B. Waldbrand Estenfeld">
+        <p class="operation-modal__error" x-show="error" x-text="error" x-cloak></p>
+        <div class="operation-modal__actions">
+          <button type="button" class="operation-modal__cancel" @click="closeCreateModal()">Abbrechen</button>
+          <button type="submit" class="operation-modal__submit" :disabled="submitting || !newName.trim()">
+            <span x-text="submitting ? 'Wird erstellt …' : 'Lage erstellen'"></span>
+          </button>
+        </div>
+      </form>
+    </section>
   </div>
 
+  <div class="operation-modal" x-show="exportModalOpen" x-cloak @click.self="closeExportModal()">
+    <section class="operation-modal__dialog operation-export-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="operation-export-title">
+      <button type="button" class="operation-modal__close" aria-label="Dialog schließen" @click="closeExportModal()">×</button>
+      <span class="operation-modal__icon">{{ icon_file() }}</span>
+      <h2 id="operation-export-title">Lage exportieren</h2>
+      <p><span x-text="exportOperation?.name"></span> - Bereiche und Dateiformat auswählen.</p>
+      <form @submit.prevent="submitExport()">
+        <fieldset class="operation-export-dialog__sections">
+          <legend>Inhalte</legend>
+          <label><input type="checkbox" x-model="exportSections.patients"> <span>Patientenübersicht</span></label>
+          <label><input type="checkbox" x-model="exportSections.helpers_summary"> <span>Einfache Helferregistrierung</span></label>
+          <label><input type="checkbox" x-model="exportSections.helpers_detail"> <span>Detaillierte Helferregistrierung</span></label>
+          <label><input type="checkbox" x-model="exportSections.vehicles"> <span>Fahrzeugübersicht</span></label>
+        </fieldset>
+        <label class="operation-export-dialog__bundle">
+          <input type="checkbox" x-model="exportCombined">
+          <span><b>Als Gesamt-PDF exportieren</b><small x-text="exportCombined ? 'Alle Bereiche werden in einer PDF zusammengeführt.' : 'Die einzelnen PDFs werden als ZIP-Datei heruntergeladen.'"></small></span>
+        </label>
+        <p class="operation-modal__error" x-show="exportError" x-text="exportError" x-cloak></p>
+        <div class="operation-modal__actions">
+          <button type="button" class="operation-modal__cancel" @click="closeExportModal()">Abbrechen</button>
+          <button type="submit" class="operation-modal__submit">Exportieren</button>
+        </div>
+      </form>
+    </section>
+  </div>
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/operation_overview.js') }}"></script>
+<script src="{{ url_for('static', filename='js/operation_overview.js', v='2') }}"></script>
 {% endblock %}

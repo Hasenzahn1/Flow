@@ -1,84 +1,62 @@
 {% extends "base.html" %}
 
-{% block title %}Overview &middot; FLOW{% endblock %}
+{% from "_icons.html" import icon_chevron_right, icon_alert, icon_grid, icon_layers, icon_puzzle, icon_clock, icon_flame, icon_settings %}
 
-{% block header_extra %} <b>Hauptmenü</b>{% endblock %}
+{% block title %}Startseite &middot; FLOW{% endblock %}
+{% block header_extra %}Startseite{% endblock %}
 
 {% block content %}
-<!--
-  Jinja embeds the active buttons directly as the initial state of the Alpine
-  object (option A). |tojson serializes the list safely and HTML-escaped as the
-  argument.
--->
-<section x-data='indexPage({{ tools|tojson }})'>
+<section class="home-page">
+  <div class="home-page__inner">
+    <header class="home-hero">
+      <div class="home-hero__copy">
+        <h1 class="hero__title">Startseite</h1>
+        <p class="hero__subtitle">Schneller Zugriff auf alle aktiven Bereiche.</p>
+      </div>
+    </header>
 
-  <div class="page-head">
-    <h1>Tools</h1>
-    <button class="secondary outline" @click="toggleEditing()">
-      <span x-text="editing ? 'Done' : 'Edit'"></span>
-    </button>
-  </div>
-
-  <!-- DISPLAY MODE: the clickable buttons (active only) -->
-  <div class="tool-grid">
-    <template x-for="tool in activeTools" :key="tool.id">
-      <a class="tool-card" :href="tool.route">
-        <span class="tool-card__icon_path" x-text="tool.icon_path || '&#9656;'"></span>
-        <span class="tool-card__label" x-text="tool.label"></span>
+    <div class="tool-grid {{ 'tool-grid--admin' if is_admin else 'tool-grid--guest' }}" aria-label="Bereiche">
+      <a class="tool-card tool-card--red" href="/operation_overview">
+        <span class="tool-card__icon">{{ icon_alert() }}</span>
+        <h2 class="tool-card__title">Lagen {{ icon_chevron_right() }}</h2>
+        <p class="tool-card__desc">Lagen verwalten und<br>dokumentieren.</p>
+        <div class="tool-card__stat">{{ icon_layers() }} <strong>{{ operation_count }}</strong> aktive Lagen</div>
       </a>
-    </template>
 
-    <p x-show="activeTools.length === 0" class="empty-hint">
-      No tools yet.
-    </p>
-  </div>
+      <a class="tool-card tool-card--green" href="/tools">
+        <span class="tool-card__icon">{{ icon_grid() }}</span>
+        <h2 class="tool-card__title">Weitere Tools {{ icon_chevron_right() }}</h2>
+        <p class="tool-card__desc">Zusätzliche Module und<br>Funktionen.</p>
+        <div class="tool-card__stat">{{ icon_puzzle() }} <strong>{{ tool_count }}</strong> {{ 'Tool' if tool_count == 1 else 'Tools' }} aktiv</div>
+      </a>
 
-  <!-- EDIT MODE: only visible when 'editing' -->
-  <div class="edit-panel" x-show="editing" x-cloak>
-    <h2>Manage tools</h2>
-
-    <!-- Add a new button -->
-    <div class="edit-add">
-      <input type="text" placeholder="Label" x-model="draft.label">
-      <input type="text" placeholder="Target route, e.g. /einsatzuebersicht" x-model="draft.route">
-      <input type="text" placeholder="icon_path (optional)" x-model="draft.icon_path" class="edit-add__icon_path">
-      <button @click="add()" :disabled="!draft.label || !draft.route">
-        Add
-      </button>
+      {% if is_admin %}
+      <a class="tool-card tool-card--blue" href="/settings">
+        <span class="tool-card__icon">{{ icon_settings() }}</span>
+        <h2 class="tool-card__title">Einstellungen {{ icon_chevron_right() }}</h2>
+        <p class="tool-card__desc">System und Anwendung<br>konfigurieren.</p>
+        <div class="tool-card__stat">{{ icon_settings() }} Konfiguration</div>
+      </a>
+      {% endif %}
     </div>
 
-    <!-- List of ALL buttons (including hidden ones) for editing -->
-    <table>
-      <thead>
-        <tr><th>Active</th><th>Label</th><th>Target route</th><th></th></tr>
-      </thead>
-      <tbody>
-        <template x-for="tool in tools" :key="tool.id">
-          <tr :class="{ 'tool-inactive': !tool.active }">
-            <td>
-              <input type="checkbox" :checked="tool.active"
-                     @change="update(tool, { active: $event.target.checked ? 1 : 0 })">
-            </td>
-            <td>
-              <input type="text" x-model="tool.label"
-                     @change="update(tool, { label: tool.label })">
-            </td>
-            <td>
-              <input type="text" x-model="tool.route"
-                     @change="update(tool, { route: tool.route })">
-            </td>
-            <td>
-              <button class="secondary outline small" @click="remove(tool)">Delete</button>
-            </td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+    <section class="recent-panel" aria-labelledby="recent-title">
+      <header class="recent-panel__header">
+        <div class="recent-panel__heading">{{ icon_clock() }} <h2 id="recent-title">Zuletzt verwendet</h2></div>
+        <a href="/operation_overview" class="recent-panel__all">Alle anzeigen {{ icon_chevron_right() }}</a>
+      </header>
+      <div class="recent-list">
+        {% for item in recent_activity %}
+        <a class="recent-item" href="{{ item.href }}">
+          <span class="recent-item__icon recent-item__icon--{{ item.tone }}">
+            {% if item.tone == 'red' %}{{ icon_flame() }}{% elif item.tone == 'amber' %}{{ icon_alert() }}{% else %}{{ icon_users() }}{% endif %}
+          </span>
+          <span class="recent-item__copy"><strong>{{ item.name }}</strong><small>{{ item.meta }}</small></span>
+          {{ icon_chevron_right('recent-item__chevron') }}
+        </a>
+        {% endfor %}
+      </div>
+    </section>
   </div>
-
 </section>
-{% endblock %}
-
-{% block scripts %}
-<script src="{{ url_for('static', filename='js/index.js') }}"></script>
 {% endblock %}

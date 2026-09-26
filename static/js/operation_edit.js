@@ -1,10 +1,6 @@
-const socket = io();
+const operationSocket = window.socket;
 
 document.addEventListener('alpine:init', () => {
-  Alpine.store('connection', { online: false });
-  socket.on('connect',    () => Alpine.store('connection').online = true);
-  socket.on('disconnect', () => Alpine.store('connection').online = false);
-
   Alpine.data('inlineField', (type, entityId, field, operationId) => ({
     editing: false,
     input: '',
@@ -84,14 +80,16 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('editPage', (operation = []) => ({
     operation_id: operation.id,
-    operation_name: operation.name,
-    operation_place: operation.place,
-    operation_date: new Date(operation.date * 1000).toLocaleDateString('de-DE'),
     search: '',
 
     current_missions: Array.from(operation.missions).filter(m => m.status == 0 || m.status == 1),
     finished_missions: Array.from(operation.missions).filter(m => m.status == 2).sort((a, b) => (b.changed_at || 0) - (a.changed_at || 0)),
     activeMissionId: null,
+
+    get totalPatients() {
+      return [...this.current_missions, ...this.finished_missions]
+        .reduce((total, mission) => total + (mission.persons || []).length, 0);
+    },
 
     getOptions(field, type) {
       const allMissions = [...this.current_missions, ...this.finished_missions];
@@ -103,12 +101,12 @@ document.addEventListener('alpine:init', () => {
     },
 
     init() {
-      socket.emit('join', { operation_id: operation.id });
+      operationSocket.emit('join', { operation_id: operation.id });
 
       let firstConnect = true;
-      socket.on('connect', () => {
+      operationSocket.on('connect', () => {
         if (!firstConnect) {
-          socket.emit('join', { operation_id: this.operation_id });
+          operationSocket.emit('join', { operation_id: this.operation_id });
           fetch(`/api/operation_overview/${this.operation_id}`)
             .then(r => r.json())
             .then(data => {
@@ -120,14 +118,14 @@ document.addEventListener('alpine:init', () => {
         firstConnect = false;
       });
 
-      socket.on('mission_updated', (updated) => {
+      operationSocket.on('mission_updated', (updated) => {
         const all = [...this.current_missions, ...this.finished_missions]
           .map(m => m.id === updated.id ? { ...m, ...updated } : m);
         this.current_missions  = all.filter(m => m.status == 0 || m.status == 1);
         this.finished_missions = all.filter(m => m.status == 2).sort((a, b) => (b.changed_at || 0) - (a.changed_at || 0));
       });
 
-      socket.on('person_updated', (updated) => {
+      operationSocket.on('person_updated', (updated) => {
         const patch = (list) => list.map(m => ({
           ...m,
           persons: m.persons.map(p => p.id === updated.id ? { ...p, ...updated } : p)
@@ -136,11 +134,11 @@ document.addEventListener('alpine:init', () => {
         this.finished_missions = patch(this.finished_missions);
       });
 
-      socket.on('mission_added', (mission) => {
+      operationSocket.on('mission_added', (mission) => {
         this.current_missions = [...this.current_missions, mission];
       });
 
-      socket.on('person_added', ({ mission_id, person }) => {
+      operationSocket.on('person_added', ({ mission_id, person }) => {
         const patch = (list) => list.map(m =>
           m.id === mission_id ? { ...m, persons: [...m.persons, person] } : m
         );
@@ -148,12 +146,12 @@ document.addEventListener('alpine:init', () => {
         this.finished_missions = patch(this.finished_missions);
       });
 
-      socket.on('mission_deleted', ({ mission_id }) => {
+      operationSocket.on('mission_deleted', ({ mission_id }) => {
         this.current_missions  = this.current_missions.filter(m => m.id !== mission_id);
         this.finished_missions = this.finished_missions.filter(m => m.id !== mission_id);
       });
 
-      socket.on('person_deleted', ({ person_id, mission_id }) => {
+      operationSocket.on('person_deleted', ({ person_id, mission_id }) => {
         const patch = (list) => list.map(m =>
           m.id === mission_id ? { ...m, persons: m.persons.filter(p => p.id !== person_id) } : m
         );
@@ -174,21 +172,21 @@ document.addEventListener('alpine:init', () => {
     },
 
     addMission() {
-      socket.emit('add_mission', { operation_id: this.operation_id });
+      operationSocket.emit('add_mission', { operation_id: this.operation_id });
     },
 
     addPerson(missionId) {
-      socket.emit('add_person', { mission_id: missionId, operation_id: this.operation_id });
+      operationSocket.emit('add_person', { mission_id: missionId, operation_id: this.operation_id });
     },
 
     deleteMission(missionId, missionNumber) {
       if (!confirm(`Einsatz ${missionNumber} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
-      socket.emit('delete_mission', { mission_id: missionId, operation_id: this.operation_id });
+      operationSocket.emit('delete_mission', { mission_id: missionId, operation_id: this.operation_id });
     },
 
     deletePerson(personId, personNumber, missionId) {
       if (!confirm(`Patient ${personNumber} wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`)) return;
-      socket.emit('delete_person', { person_id: personId, mission_id: missionId, operation_id: this.operation_id });
+      operationSocket.emit('delete_person', { person_id: personId, mission_id: missionId, operation_id: this.operation_id });
     },
 
     formatDateTime(ts) {
@@ -215,6 +213,10 @@ document.addEventListener('alpine:init', () => {
       });
     },
 
+    triageCount(persons, triage) {
+      return (persons || []).filter(person => Number(person.triage) === triage).length;
+    },
+
     triageBarStyle(persons) {
       if (!persons || !persons.length) return '';
       const colors = { 0: '#6b7280', 1: '#22c55e', 2: '#eab308', 3: '#ef4444' };
@@ -228,11 +230,11 @@ document.addEventListener('alpine:init', () => {
         if (i > 0) stops.push(`${sep} ${start}% calc(${start}% + 2px)`);
         stops.push(`${c} ${i > 0 ? `calc(${start}% + 2px)` : `${start}%`} ${end}%`);
       });
-      return `background: linear-gradient(to bottom, ${stops.join(', ')})`;
+      return `background: linear-gradient(to right, ${stops.join(', ')})`;
     },
 
     saveField(type, id, field, value, operationId) {
-      socket.emit(`update_${type}`, { [`${type}_id`]: id, field, value, operation_id: operationId });
+      operationSocket.emit(`update_${type}`, { [`${type}_id`]: id, field, value, operation_id: operationId });
     }
   }));
 });

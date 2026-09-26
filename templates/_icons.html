@@ -1,0 +1,94 @@
+{# Small inline SVG icon set (stroke-based, Feather/Lucide-style paths).
+   Inlined so the app keeps working with no internet access (ELW). #}
+
+{% macro svg(inner, cls='') -%}
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon {{ cls }}" aria-hidden="true">
+  {{ inner|safe }}
+</svg>
+{%- endmacro %}
+
+{% macro icon_home(cls='') %}{{ svg('<path d="M3 9.5 12 3l9 6.5"/><path d="M5 9v11a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V9"/>', cls) }}{% endmacro %}
+
+{% macro icon_alert(cls='') %}{{ svg('<path d="M12 3 2 20h20L12 3z"/><line x1="12" y1="10" x2="12" y2="14"/><line x1="12" y1="17.5" x2="12" y2="17.5"/>', cls) }}{% endmacro %}
+
+{% macro icon_users(cls='') %}{{ svg('<path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', cls) }}{% endmacro %}
+
+{% macro icon_user_plus(cls='') %}{{ svg('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/>', cls) }}{% endmacro %}
+
+{% macro icon_grid(cls='') %}{{ svg('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>', cls) }}{% endmacro %}
+
+{% macro icon_settings(cls='') %}{{ svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>', cls) }}{% endmacro %}
+
+{% macro icon_chevron_right(cls='') %}{{ svg('<polyline points="9 18 15 12 9 6"/>', cls) }}{% endmacro %}
+
+{% macro icon_pencil(cls='') %}{{ svg('<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>', cls) }}{% endmacro %}
+
+{% macro icon_arrow_up(cls='') %}{{ svg('<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>', cls) }}{% endmacro %}
+
+{% macro icon_collapse(cls='') %}{{ svg('<polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>', cls) }}{% endmacro %}
+
+{% macro icon_clock(cls='') %}{{ svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', cls) }}{% endmacro %}
+
+{% macro icon_file(cls='') %}{{ svg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>', cls) }}{% endmacro %}
+
+{% macro icon_layers(cls='') %}{{ svg('<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 12 12 17 22 12"/><polyline points="2 17 12 22 22 17"/>', cls) }}{% endmacro %}
+
+{% macro icon_puzzle(cls='') %}{{ svg('<path d="M19.4 13.5H18a2 2 0 1 1 0-4h1.4a1.6 1.6 0 0 0 1.6-1.6V5a2 2 0 0 0-2-2h-2.9a1.6 1.6 0 0 0-1.6 1.6V6a2 2 0 1 1-4 0V4.6A1.6 1.6 0 0 0 8.9 3H6a2 2 0 0 0-2 2v3a1.5 1.5 0 0 0 1.5 1.5H7a2 2 0 1 1 0 4H5.5A1.5 1.5 0 0 0 4 15v4a2 2 0 0 0 2 2h4.5v-2a2 2 0 1 1 4 0v2H19a2 2 0 0 0 2-2v-3.9a1.6 1.6 0 0 0-1.6-1.6z"/>', cls) }}{% endmacro %}
+
+{% macro icon_monitor(cls='') %}{{ svg('<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>', cls) }}{% endmacro %}
+
+{% macro icon_refresh(cls='') %}{{ svg('<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>', cls) }}{% endmacro %}
+
+{% macro icon_flame(cls='') %}{{ svg('<path d="M12 22c4.4 0 8-3.4 8-7.7 0-2.8-1.5-5.1-3.8-7.3.1 2.1-.9 3.8-2.2 4.2.5-3.7-1.8-7.4-5.3-9.2.3 3.7-2.3 5.6-3.8 7.8C3.7 11.5 3 13 3 15c0 3.9 3.7 7 9 7z"/><path d="M9.5 18.5c0-1.8 1.1-3 2.6-4.5.1 1.2.6 2.1 1.5 2.8.4-.7.7-1.5.6-2.4 1.2 1.1 1.8 2.3 1.8 3.6 0 2-1.7 3.5-3.5 3.5s-3-1.2-3-3z"/>', cls) }}{% endmacro %}
+
+{% macro icon_search(cls='') %}{{ svg('<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', cls) }}{% endmacro %}
+
+{% macro icon_plus(cls='') %}{{ svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', cls) }}{% endmacro %}
+
+{% macro icon_check_circle(cls='') %}{{ svg('<circle cx="12" cy="12" r="10"/><polyline points="8 12 11 15 16 9"/>', cls) }}{% endmacro %}
+
+{% macro icon_file_plus(cls='') %}{{ svg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>', cls) }}{% endmacro %}
+
+{% macro icon_external_link(cls='') %}{{ svg('<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>', cls) }}{% endmacro %}
+
+{% macro icon_info(cls='') %}{{ svg('<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>', cls) }}{% endmacro %}
+
+{% macro icon_scan(cls='') %}{{ svg('<path d="M4 7V4h3M17 4h3v3M20 17v3h-3M7 20H4v-3"/><path d="M7 9h10v6H7z"/><path d="M9 7v10M12 7v10M15 7v10"/>', cls) }}{% endmacro %}
+
+{% macro icon_camera(cls='') %}{{ svg('<path d="M14.5 5 13 3h-2L9.5 5H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2z"/><circle cx="12" cy="12.5" r="4"/>', cls) }}{% endmacro %}
+
+{% macro icon_utensils(cls='') %}{{ svg('<path d="M6 2v8M3 2v5a3 3 0 0 0 6 0V2M6 10v12M17 2v20M17 2c3 2 4 6 0 10"/>', cls) }}{% endmacro %}
+
+{% macro icon_gender(cls='') %}{{ svg('<circle cx="9" cy="9" r="5"/><path d="M12.5 5.5 17 1m0 0v5m0-5h-5M9 14v8m-3-3h6"/>', cls) }}{% endmacro %}
+
+{% macro icon_phone(cls='') %}{{ svg('<rect x="6" y="2" width="12" height="20" rx="2"/><line x1="10" y1="18" x2="14" y2="18"/>', cls) }}{% endmacro %}
+
+{% macro icon_vehicle(cls='') %}{{ svg('<path d="M3 11l2-5h14l2 5"/><path d="M5 18H3v-7h18v7h-2"/><path d="M5 18h14"/><circle cx="7" cy="15" r="1.5"/><circle cx="17" cy="15" r="1.5"/>', cls) }}{% endmacro %}
+
+{% macro icon_save(cls='') %}{{ svg('<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>', cls) }}{% endmacro %}
+
+{% macro icon_grip(cls='') %}{{ svg('<circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/>', cls) }}{% endmacro %}
+
+{% macro icon_arrow_down(cls='') %}{{ svg('<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>', cls) }}{% endmacro %}
+
+{% macro icon_upload(cls='') %}{{ svg('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>', cls) }}{% endmacro %}
+
+{% macro icon_trash(cls='') %}{{ svg('<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6m3 0V3h8v3M10 10v6M14 10v6"/>', cls) }}{% endmacro %}
+
+{% macro icon_more(cls='') %}{{ svg('<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>', cls) }}{% endmacro %}
+
+{# Renders a tool's icon_path as one of the known icon keys. Keep this list in
+   sync with pages/index.py and static/js/tool-settings.js. #}
+{% macro icon_by_key(key, cls='') -%}
+{%- if key == 'alert' %}{{ icon_alert(cls) }}
+{%- elif key == 'file' %}{{ icon_file(cls) }}
+{%- elif key == 'users' %}{{ icon_users(cls) }}
+{%- elif key == 'user-plus' %}{{ icon_user_plus(cls) }}
+{%- elif key == 'grid' %}{{ icon_grid(cls) }}
+{%- elif key == 'monitor' %}{{ icon_monitor(cls) }}
+{%- elif key == 'puzzle' %}{{ icon_puzzle(cls) }}
+{%- elif key == 'settings' %}{{ icon_settings(cls) }}
+{%- else %}{{ icon_grid(cls) }}
+{%- endif -%}
+{%- endmacro %}

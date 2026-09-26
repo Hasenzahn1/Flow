@@ -1,436 +1,239 @@
 {% extends "base.html" %}
 
-{% block title %}Einsatzübersicht - FLOW{% endblock %}
+{% from "_icons.html" import icon_chevron_right, icon_clock, icon_users, icon_search, icon_file, icon_plus %}
 
-{% block header_extra %}
-<div x-data class="header-operation">
-  <b>Einsatzübersicht - {{ operation.name }}</b>
-  <span class="connection-badge"
-    :class="$store.connection.online ? 'connection-badge--online' : 'connection-badge--offline'">
-    <span class="connection-badge__dot"></span>
-    <span x-text="$store.connection.online ? 'Verbunden' : 'Keine Verbindung'"></span>
-  </span>
+{% macro inline_text(type, id_expr, field, value_expr) %}
+<div class="inline-edit-wrapper" x-data="inlineField('{{ type }}', {{ id_expr }}, '{{ field }}', operation_id)">
+  <span class="inline-editable" x-show="!editing" @click="open({{ value_expr }})" x-text="{{ value_expr }} || '—'"></span>
+  <div x-show="editing">
+    <input x-ref="inp" x-model="input" class="inline-input"
+      :size="Math.max(2, (input || '—').length)"
+      @input="doFilter()" @keydown.tab="tabComplete($event)"
+      @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
+      @blur="save()">
+    <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
+      <template x-for="(opt, idx) in filtered" :key="idx">
+        <li @click="input = opt; save()" x-text="opt"></li>
+      </template>
+    </ul>
+  </div>
 </div>
-{% endblock %}
+{% endmacro %}
+
+{% macro mission_rows(list_name, finished=false, expand_first=false) %}
+<template x-for="(mission, i) in filteredMissions({{ list_name }})" :key="mission.id">
+  <article class="mission-card" x-data="{ open: {{ 'i === 0' if expand_first else 'false' }} }"
+    x-init="if (open) $nextTick(() => $dispatch('mission-opened', { id: mission.id }))"
+    :class="'mission-card--status-' + mission.status + (activeMissionId === mission.id ? ' mission-card--active' : '')">
+
+    <div class="mission-card__summary"
+      @click="open = !open; $dispatch(open ? 'mission-opened' : 'mission-closed', { id: mission.id })">
+      <strong class="mission-summary__number" x-text="mission.number"></strong>
+
+      <div class="mission-summary__status" @click.stop>
+        <span class="mission-summary__label">Status</span>
+        <select class="inline-select mission-status-select" :class="'mission-status-select--' + mission.status"
+          @change="saveField('mission', mission.id, 'status', parseInt($event.target.value), operation_id)">
+          <option value="0" :selected="mission.status == 0">Neu</option>
+          <option value="1" :selected="mission.status == 1">In Bearbeitung</option>
+          <option value="2" :selected="mission.status == 2">Abgeschlossen</option>
+        </select>
+      </div>
+
+      <div class="mission-summary__time">
+        <span class="mission-summary__label">{{ 'Abgeschlossen' if finished else 'Aktualisiert' }}</span>
+        <span>{{ icon_clock() }} <span x-text="{{ 'formatDateTime(mission.changed_at)' if finished else 'formatTime(mission.changed_at)' }}"></span></span>
+      </div>
+
+      <div class="mission-summary__field" @click.stop>
+        <span class="mission-summary__label">Ort</span>
+        {{ inline_text('mission', 'mission.id', 'place', 'mission.place') }}
+      </div>
+
+      <div class="mission-summary__field" @click.stop>
+        <span class="mission-summary__label">Einheit</span>
+        {{ inline_text('mission', 'mission.id', 'unit', 'mission.unit') }}
+      </div>
+
+      <div class="mission-summary__field mission-summary__field--description" @click.stop>
+        <span class="mission-summary__label">Beschreibung</span>
+        {{ inline_text('mission', 'mission.id', 'description', 'mission.description') }}
+      </div>
+
+      <div class="mission-summary__persons" aria-label="Patienten und Sichtungskategorien">
+        <span class="mission-summary__patient-count">{{ icon_users() }} <strong x-text="mission.persons.length"></strong><small>Pat.</small></span>
+        <span class="triage-count triage-count--red"><i></i><span x-text="triageCount(mission.persons, 3)"></span></span>
+        <span class="triage-count triage-count--yellow"><i></i><span x-text="triageCount(mission.persons, 2)"></span></span>
+        <span class="triage-count triage-count--green"><i></i><span x-text="triageCount(mission.persons, 1)"></span></span>
+        <span class="triage-count triage-count--gray"><i></i><span x-text="triageCount(mission.persons, 0)"></span></span>
+      </div>
+
+      <button class="delete-btn" @click.stop="deleteMission(mission.id, mission.number)" title="Einsatz löschen" aria-label="Einsatz löschen">&#x2715;</button>
+      <button class="mission-card__chevron" :class="{ 'mission-card__chevron--open': open }"
+        @click.stop="open = !open; $dispatch(open ? 'mission-opened' : 'mission-closed', { id: mission.id })"
+        :aria-label="open ? 'Patienten einklappen' : 'Patienten ausklappen'">&#x25BC;</button>
+    </div>
+
+    <section class="mission-patients" x-show="open" x-cloak>
+      <header class="mission-patients__header">
+        <div class="mission-patients__title">
+          {{ icon_users() }}
+          <div>
+            <h3>Patienten (<span x-text="mission.persons.length"></span>)</h3>
+            <p>Diesem Einsatz zugeordnete Patienten</p>
+          </div>
+        </div>
+        <button class="add-person-btn" @click="addPerson(mission.id)">{{ icon_plus() }} <span>Patient hinzufügen</span><kbd>P</kbd></button>
+      </header>
+
+      <div class="patients-table-wrap" x-show="mission.persons.length > 0">
+        <div class="patients-table" role="table" aria-label="Patienten dieses Einsatzes">
+          <div class="patients-table__header" role="row">
+            <span role="columnheader">#</span>
+            <span role="columnheader">Nachname</span>
+            <span role="columnheader">Vorname</span>
+            <span role="columnheader">Geb. Datum</span>
+            <span role="columnheader">Geschlecht</span>
+            <span role="columnheader">Verletzt</span>
+            <span role="columnheader">Übergabe</span>
+            <span role="columnheader">Triage</span>
+            <span role="columnheader">Zusatzinformationen</span>
+            <span role="columnheader">Aktionen</span>
+          </div>
+
+          <template x-for="person in mission.persons" :key="person.id">
+            <div class="patient-row" role="row" :class="'patient-row--triage-' + person.triage">
+              <strong class="patient-row__number" role="cell" x-text="'Patient ' + person.number"></strong>
+
+              <div class="patient-cell" role="cell">
+                <span class="patient-cell__mobile-label">Nachname</span>
+                {{ inline_text('person', 'person.id', 'last_name', 'person.last_name') }}
+              </div>
+
+              <div class="patient-cell" role="cell">
+                <span class="patient-cell__mobile-label">Vorname</span>
+                {{ inline_text('person', 'person.id', 'name', 'person.name') }}
+              </div>
+
+              <div class="patient-cell" role="cell" x-data="inlineDateField('person', person.id, 'birthdate', operation_id)">
+                <span class="patient-cell__mobile-label">Geburtsdatum</span>
+                <span class="inline-editable" x-show="!editing" @click="open(person.birthdate)" x-text="displayDate(person.birthdate)"></span>
+                <div x-show="editing">
+                  <input x-ref="inp" type="date" x-model="input" class="inline-input"
+                    @blur="save()" @keydown.enter.prevent="save()" @keydown.escape="editing = false">
+                </div>
+              </div>
+
+              <div class="patient-cell" role="cell">
+                <span class="patient-cell__mobile-label">Geschlecht</span>
+                <select class="inline-select patient-select"
+                  @change="saveField('person', person.id, 'gender', $event.target.value, operation_id)">
+                  <option value="" :selected="!person.gender">—</option>
+                  <option value="Männlich" :selected="person.gender == 'Männlich'">Männlich</option>
+                  <option value="Weiblich" :selected="person.gender == 'Weiblich'">Weiblich</option>
+                  <option value="Divers" :selected="person.gender == 'Divers'">Divers</option>
+                </select>
+              </div>
+
+              <div class="patient-cell" role="cell">
+                <span class="patient-cell__mobile-label">Verletzt</span>
+                <button class="hurt-toggle" :class="person.hurt ? 'hurt-toggle--yes' : 'hurt-toggle--no'"
+                  @click="saveField('person', person.id, 'hurt', person.hurt ? 0 : 1, operation_id)"
+                  :aria-pressed="!!person.hurt" x-text="person.hurt ? 'Ja' : 'Nein'"></button>
+              </div>
+
+              <div class="patient-cell" role="cell">
+                <span class="patient-cell__mobile-label">Übergabe</span>
+                {{ inline_text('person', 'person.id', 'handover', 'person.handover') }}
+              </div>
+
+              <div class="patient-cell" role="cell">
+                <span class="patient-cell__mobile-label">Triage</span>
+                <div class="patient-triage-colors" role="radiogroup" aria-label="Triage">
+                  <button type="button" class="patient-triage-color patient-triage-color--gray"
+                    :class="{ 'patient-triage-color--active': person.triage == 0 }"
+                    role="radio" :aria-checked="person.triage == 0" aria-label="Keine Triage"
+                    @click="saveField('person', person.id, 'triage', 0, operation_id)"></button>
+                  <button type="button" class="patient-triage-color patient-triage-color--green"
+                    :class="{ 'patient-triage-color--active': person.triage == 1 }"
+                    role="radio" :aria-checked="person.triage == 1" aria-label="Triage Grün"
+                    @click="saveField('person', person.id, 'triage', 1, operation_id)"></button>
+                  <button type="button" class="patient-triage-color patient-triage-color--yellow"
+                    :class="{ 'patient-triage-color--active': person.triage == 2 }"
+                    role="radio" :aria-checked="person.triage == 2" aria-label="Triage Gelb"
+                    @click="saveField('person', person.id, 'triage', 2, operation_id)"></button>
+                  <button type="button" class="patient-triage-color patient-triage-color--red"
+                    :class="{ 'patient-triage-color--active': person.triage == 3 }"
+                    role="radio" :aria-checked="person.triage == 3" aria-label="Triage Rot"
+                    @click="saveField('person', person.id, 'triage', 3, operation_id)"></button>
+                </div>
+              </div>
+
+              <div class="patient-cell patient-cell--info" role="cell">
+                <span class="patient-cell__mobile-label">Zusatzinformationen</span>
+                {{ inline_text('person', 'person.id', 'info', 'person.info') }}
+              </div>
+
+              <div class="patient-row__actions" role="cell">
+                <button class="delete-btn delete-btn--person" @click="deletePerson(person.id, person.number, mission.id)"
+                  title="Patient löschen" aria-label="Patient löschen">&#x2715;</button>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <p class="patients-empty" x-show="mission.persons.length === 0">Noch keine Patienten zugeordnet.</p>
+    </section>
+  </article>
+</template>
+{% endmacro %}
+
+{% block title %}{{ operation.name }} &middot; FLOW{% endblock %}
+
+{% block header_extra %}<a href="/operation_overview" class="topbar__breadcrumb-link">Lagen</a>{{ icon_chevron_right('topbar__sep') }}<a href="/operation_overview/{{ operation.id }}" class="topbar__breadcrumb-link">{{ operation.name }}</a>{{ icon_chevron_right('topbar__sep') }}<span class="topbar__operation-name">Patientenübersicht</span>{% endblock %}
 
 {% block content %}
-<section x-data='editPage({{ operation|tojson }})'
+<section class="operation-detail-page" x-data='editPage({{ operation|tojson }})'
   @keydown.window="handleKeydown($event)"
   @mission-opened.window="activeMissionId = $event.detail.id"
   @mission-closed.window="activeMissionId = null">
 
-  <!-- ── Suche ─────────────────────────────────────────────── -->
-  <div class="search-bar">
-    <input class="search-bar__input" type="search" placeholder="Suche nach Ort, Einheit, Patient …" x-model="search">
-    <a href="/api/operation_overview/{{ operation.id }}/export"
-       class="btn-export" title="Als PDF exportieren">&#x2193; PDF</a>
+  <div class="operation-detail-page__inner">
+    <div class="operation-detail-toolbar">
+      <label class="operation-detail-search">
+        {{ icon_search() }}
+        <input type="search" placeholder="Suche nach Ort, Einheit oder Patient …" x-model="search">
+      </label>
+      <a href="/api/operation_overview/{{ operation.id }}/export"
+        class="operation-detail-export" title="Als PDF exportieren">{{ icon_file() }} PDF exportieren</a>
+    </div>
+
+    <section class="mission-group mission-group--current">
+      <header class="mission-group__header">
+        <div>
+          <span class="mission-group__eyebrow">Laufender Betrieb</span>
+          <h2>Aktuelle Einsätze <span class="mission-group__count" x-text="filteredMissions(current_missions).length"></span></h2>
+        </div>
+        <button class="add-mission-btn" @click="addMission()">{{ icon_plus() }} Neuer Einsatz <kbd>N</kbd></button>
+      </header>
+      <p class="empty-hint" x-show="current_missions.length === 0">Keine aktuellen Einsätze</p>
+      {{ mission_rows('current_missions', expand_first=true) }}
+    </section>
+
+    <section class="mission-group mission-group--finished">
+      <header class="mission-group__header">
+        <div>
+          <span class="mission-group__eyebrow">Archiv</span>
+          <h2>Abgeschlossen <span class="mission-group__count" x-text="filteredMissions(finished_missions).length"></span></h2>
+        </div>
+      </header>
+      {{ mission_rows('finished_missions', finished=true) }}
+    </section>
   </div>
-
-  <!-- ── Aktuelle Einsätze ─────────────────────────────────── -->
-  <h2>Aktuell (<span x-text="filteredMissions(current_missions).length"></span>)</h2>
-  <p class="empty-hint" x-show="current_missions.length === 0">Keine aktuellen Einsätze</p>
-
-  <template x-for="(mission, i) in filteredMissions(current_missions)" :key="mission.id">
-    <div class="mission-card" x-data="{ open: false }" :class="'mission-card--status-' + mission.status + (activeMissionId === mission.id ? ' mission-card--active' : '')">
-      <div class="mission-triage-bar" :style="triageBarStyle(mission.persons)"></div>
-
-      <!-- Row 1: Summary bar -->
-      <div class="mission-card__summary" @click="open = !open; $dispatch(open ? 'mission-opened' : 'mission-closed', { id: mission.id })">
-        <strong class="mission-summary__number" x-text="mission.number"></strong>
-
-        <div class="mission-summary__status" @click.stop>
-          <select class="inline-select"
-              @change="saveField('mission', mission.id, 'status', parseInt($event.target.value), operation_id)">
-              <option value="0" :selected="mission.status == 0">Neu</option>
-              <option value="1" :selected="mission.status == 1">In Bearbeitung</option>
-              <option value="2" :selected="mission.status == 2">Abgeschlossen</option>
-          </select>
-          <span x-text="formatTime(mission.changed_at)"></span>
-        </div>
-
-        <div class="mission-summary__field" x-data="inlineField('mission', mission.id, 'place', operation_id)" @click.stop>
-          <span class="mission-summary__label">Ort:</span>
-          <div class="inline-edit-wrapper">
-            <span class="inline-editable" x-show="!editing" @click="open(mission.place)" x-text="mission.place || '—'"></span>
-            <div x-show="editing">
-              <input x-ref="inp" x-model="input" class="inline-input"
-                :size="Math.max(2, (input || '—').length)"
-                @input="doFilter()" @keydown.tab="tabComplete($event)"
-                @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                @blur="save()">
-              <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                <template x-for="(opt, idx) in filtered" :key="idx">
-                  <li @click="input = opt; save()" x-text="opt"></li>
-                </template>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div class="mission-summary__field" x-data="inlineField('mission', mission.id, 'unit', operation_id)" @click.stop>
-          <span class="mission-summary__label">Einheit:</span>
-          <div class="inline-edit-wrapper">
-            <span class="inline-editable" x-show="!editing" @click="open(mission.unit)" x-text="mission.unit || '—'"></span>
-            <div x-show="editing">
-              <input x-ref="inp" x-model="input" class="inline-input"
-                :size="Math.max(2, (input || '—').length)"
-                @input="doFilter()" @keydown.tab="tabComplete($event)"
-                @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                @blur="save()">
-              <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                <template x-for="(opt, idx) in filtered" :key="idx">
-                  <li @click="input = opt; save()" x-text="opt"></li>
-                </template>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <span class="mission-summary__persons" x-text="mission.persons.length + ' Pat.'"></span>
-        <button class="delete-btn" @click.stop="deleteMission(mission.id, mission.number)" title="Einsatz löschen">&#x2715;</button>
-        <span class="mission-card__chevron" :class="{ 'mission-card__chevron--open': open }">&#x25BC;</span>
-      </div>
-
-      <!-- Row 2: Description (always visible) -->
-      <div class="mission-description">
-        <span class="mission-description__label">Beschreibung:</span>
-        <textarea class="field-textarea"
-          :value="mission.description"
-          x-init="$nextTick(() => { $el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px' })"
-          @input="$el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px'"
-          @blur="saveField('mission', mission.id, 'description', $event.target.value, operation_id)"></textarea>
-      </div>
-
-      <!-- Persons (expanded only) -->
-      <div class="mission-persons" x-show="open">
-        <template x-for="(person, j) in mission.persons" :key="j">
-          <div class="person-card" x-data="{ open: false }" :class="'person-card--triage-' + person.triage"
-            x-effect="open && $nextTick(() => $el.querySelectorAll('.field-textarea').forEach(t => { t.style.height = '0'; t.style.height = t.scrollHeight + 'px' }))">
-            <button class="person-card__header" @click="open = !open">
-              <span x-text="'Patient ' + person.number" style="margin-right: 0.2rem"></span>
-              <span class="delete-btn delete-btn--person" @click.stop="deletePerson(person.id, person.number, mission.id)" title="Patient löschen">&#x2715;</span>
-              <span class="person-card__chevron" :class="{ 'person-card__chevron--open': open }">&#x25BC;</span>
-            </button>
-            <div class="person-card__columns" x-show="open">
-              <div>
-                <div class="person-card__row" x-data="inlineField('person', person.id, 'last_name', operation_id)">
-                  <span class="person-card__label">Nachname: </span>
-                  <div class="inline-edit-wrapper">
-                    <span class="inline-editable" x-show="!editing" @click="open(person.last_name)" x-text="person.last_name || '—'"></span>
-                    <div x-show="editing">
-                      <input x-ref="inp" x-model="input" class="inline-input"
-                        :size="Math.max(2, (input || '—').length)"
-                        @input="doFilter()" @keydown.tab="tabComplete($event)"
-                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                        @blur="save()">
-                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                        <template x-for="(opt, idx) in filtered" :key="idx">
-                          <li @click="input = opt; save()" x-text="opt"></li>
-                        </template>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="person-card__row" x-data="inlineField('person', person.id, 'name', operation_id)">
-                  <span class="person-card__label">Vorname: </span>
-                  <div class="inline-edit-wrapper">
-                    <span class="inline-editable" x-show="!editing" @click="open(person.name)" x-text="person.name || '—'"></span>
-                    <div x-show="editing">
-                      <input x-ref="inp" x-model="input" class="inline-input"
-                        :size="Math.max(2, (input || '—').length)"
-                        @input="doFilter()" @keydown.tab="tabComplete($event)"
-                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                        @blur="save()">
-                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                        <template x-for="(opt, idx) in filtered" :key="idx">
-                          <li @click="input = opt; save()" x-text="opt"></li>
-                        </template>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="person-card__row" x-data="inlineDateField('person', person.id, 'birthdate', operation_id)">
-                  <span class="person-card__label">Geb. Datum: </span>
-                  <div class="inline-edit-wrapper">
-                    <span class="inline-editable" x-show="!editing" @click="open(person.birthdate)" x-text="displayDate(person.birthdate)"></span>
-                    <div x-show="editing">
-                      <input x-ref="inp" type="date" x-model="input" class="inline-input"
-                        @blur="save()" @keydown.enter.prevent="save()" @keydown.escape="editing = false">
-                    </div>
-                  </div>
-                </div>
-                <div class="person-card__row">
-                  <span class="person-card__label">Geschlecht: </span>
-                  <select class="inline-select" style="text-align: left"
-                    @change="saveField('person', person.id, 'gender', $event.target.value, operation_id)">
-                    <option value="" :selected="!person.gender">—</option>
-                    <option value="Männlich" :selected="person.gender == 'Männlich'">Männlich</option>
-                    <option value="Weiblich" :selected="person.gender == 'Weiblich'">Weiblich</option>
-                    <option value="Divers" :selected="person.gender == 'Divers'">Divers</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <div class="person-card__row person-card__row--check">
-                  <span class="person-card__label2">Verletzt: </span>
-                  <input type="checkbox" class="inline-checkbox"
-                    :checked="!!person.hurt"
-                    @change="saveField('person', person.id, 'hurt', $event.target.checked ? 1 : 0, operation_id)">
-                </div>
-
-                <div class="person-card__row" x-data="inlineField('person', person.id, 'handover', operation_id)">
-                  <span class="person-card__label2">Übergabe: </span>
-                  <div class="inline-edit-wrapper">
-                    <span class="inline-editable" x-show="!editing" @click="open(person.handover)" x-text="person.handover || '—'"></span>
-                    <div x-show="editing">
-                      <input x-ref="inp" x-model="input" class="inline-input"
-                        :size="Math.max(2, (input || '—').length)"
-                        @input="doFilter()" @keydown.tab="tabComplete($event)"
-                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                        @blur="save()">
-                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                        <template x-for="(opt, idx) in filtered" :key="idx">
-                          <li @click="input = opt; save()" x-text="opt"></li>
-                        </template>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="person-card__row person-card__row--check">
-                  <span class="person-card__label2">Triage: </span>
-                  <div class="triage-boxes">
-                    <button class="triage-box triage-box--gray"   :class="{'triage-box--active': person.triage == 0}" @click="saveField('person', person.id, 'triage', 0, operation_id)"></button>
-                    <button class="triage-box triage-box--green"  :class="{'triage-box--active': person.triage == 1}" @click="saveField('person', person.id, 'triage', 1, operation_id)"></button>
-                    <button class="triage-box triage-box--yellow" :class="{'triage-box--active': person.triage == 2}" @click="saveField('person', person.id, 'triage', 2, operation_id)"></button>
-                    <button class="triage-box triage-box--red"    :class="{'triage-box--active': person.triage == 3}" @click="saveField('person', person.id, 'triage', 3, operation_id)"></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div class="person-card__row person-card__row--block" x-show="open">
-                <span class="person-card__label2">Info:</span>
-                <textarea class="field-textarea"
-                :value="person.info"
-                x-init="$nextTick(() => { $el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px' })"
-                @input="$el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px'"
-                @blur="saveField('person', person.id, 'info', $event.target.value, operation_id)"></textarea>
-            </div>
-          </div>
-        </template>
-        <button class="add-person-btn" @click="addPerson(mission.id)">+</button>
-      </div>
-
-    </div>
-  </template>
-  <button class="add-mission-btn" @click="addMission()">+</button>
-
-  <!-- ── Abgeschlossene Einsätze ───────────────────────────── -->
-  <h2>Abgeschlossen (<span x-text="filteredMissions(finished_missions).length"></span>)</h2>
-
-  <template x-for="(mission, i) in filteredMissions(finished_missions)" :key="mission.id">
-    <div class="mission-card" x-data="{ open: false }" :class="'mission-card--status-' + mission.status + (activeMissionId === mission.id ? ' mission-card--active' : '')">
-      <div class="mission-triage-bar" :style="triageBarStyle(mission.persons)"></div>
-
-      <!-- Row 1: Summary bar -->
-      <div class="mission-card__summary" @click="open = !open; $dispatch(open ? 'mission-opened' : 'mission-closed', { id: mission.id })">
-        <strong class="mission-summary__number" x-text="mission.number"></strong>
-
-        <div class="mission-summary__status" @click.stop>
-          <select class="inline-select"
-              @change="saveField('mission', mission.id, 'status', parseInt($event.target.value), operation_id)">
-              <option value="0" :selected="mission.status == 0">Neu</option>
-              <option value="1" :selected="mission.status == 1">In Bearbeitung</option>
-              <option value="2" :selected="mission.status == 2">Abgeschlossen</option>
-          </select>
-          <span x-text="formatDateTime(mission.changed_at)"></span>
-        </div>
-
-        <div class="mission-summary__field" x-data="inlineField('mission', mission.id, 'place', operation_id)" @click.stop>
-          <span class="mission-summary__label">Ort:</span>
-          <div class="inline-edit-wrapper">
-            <span class="inline-editable" x-show="!editing" @click="open(mission.place)" x-text="mission.place || '—'"></span>
-            <div x-show="editing">
-              <input x-ref="inp" x-model="input" class="inline-input"
-                :size="Math.max(2, (input || '—').length)"
-                @input="doFilter()" @keydown.tab="tabComplete($event)"
-                @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                @blur="save()">
-              <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                <template x-for="(opt, idx) in filtered" :key="idx">
-                  <li @click="input = opt; save()" x-text="opt"></li>
-                </template>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div class="mission-summary__field" x-data="inlineField('mission', mission.id, 'unit', operation_id)" @click.stop>
-          <span class="mission-summary__label">Einheit:</span>
-          <div class="inline-edit-wrapper">
-            <span class="inline-editable" x-show="!editing" @click="open(mission.unit)" x-text="mission.unit || '—'"></span>
-            <div x-show="editing">
-              <input x-ref="inp" x-model="input" class="inline-input"
-                :size="Math.max(2, (input || '—').length)"
-                @input="doFilter()" @keydown.tab="tabComplete($event)"
-                @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                @blur="save()">
-              <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                <template x-for="(opt, idx) in filtered" :key="idx">
-                  <li @click="input = opt; save()" x-text="opt"></li>
-                </template>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <span class="mission-summary__persons" x-text="mission.persons.length + ' Pat.'"></span>
-        <button class="delete-btn" @click.stop="deleteMission(mission.id, mission.number)" title="Einsatz löschen">&#x2715;</button>
-        <span class="mission-card__chevron" :class="{ 'mission-card__chevron--open': open }">&#x25BC;</span>
-      </div>
-
-      <!-- Row 2: Description (always visible) -->
-      <div class="mission-description">
-        <span class="mission-description__label">Beschreibung:</span>
-        <textarea class="field-textarea"
-          :value="mission.description"
-          x-init="$nextTick(() => { $el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px' })"
-          @input="$el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px'"
-          @blur="saveField('mission', mission.id, 'description', $event.target.value, operation_id)"></textarea>
-      </div>
-
-      <!-- Persons (expanded only) -->
-      <div class="mission-persons" x-show="open">
-        <template x-for="(person, j) in mission.persons" :key="j">
-          <div class="person-card" x-data="{ open: false }" :class="'person-card--triage-' + person.triage"
-            x-effect="open && $nextTick(() => $el.querySelectorAll('.field-textarea').forEach(t => { t.style.height = '0'; t.style.height = t.scrollHeight + 'px' }))">
-            <button class="person-card__header" @click="open = !open">
-              <span x-text="'Patient ' + person.number"></span>
-              <span class="delete-btn delete-btn--person" @click.stop="deletePerson(person.id, person.number, mission.id)" title="Patient löschen">&#x2715;</span>
-              <span class="person-card__chevron" :class="{ 'person-card__chevron--open': open }">&#x25BC;</span>
-            </button>
-            <div class="person-card__columns" x-show="open">
-              <div>
-                <div class="person-card__row" x-data="inlineField('person', person.id, 'last_name', operation_id)">
-                  <span class="person-card__label">Nachname: </span>
-                  <div class="inline-edit-wrapper">
-                    <span class="inline-editable" x-show="!editing" @click="open(person.last_name)" x-text="person.last_name || '—'"></span>
-                    <div x-show="editing">
-                      <input x-ref="inp" x-model="input" class="inline-input"
-                        :size="Math.max(2, (input || '—').length)"
-                        @input="doFilter()" @keydown.tab="tabComplete($event)"
-                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                        @blur="save()">
-                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                        <template x-for="(opt, idx) in filtered" :key="idx">
-                          <li @click="input = opt; save()" x-text="opt"></li>
-                        </template>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="person-card__row" x-data="inlineField('person', person.id, 'name', operation_id)">
-                  <span class="person-card__label">Vorname: </span>
-                  <div class="inline-edit-wrapper">
-                    <span class="inline-editable" x-show="!editing" @click="open(person.name)" x-text="person.name || '—'"></span>
-                    <div x-show="editing">
-                      <input x-ref="inp" x-model="input" class="inline-input"
-                        :size="Math.max(2, (input || '—').length)"
-                        @input="doFilter()" @keydown.tab="tabComplete($event)"
-                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                        @blur="save()">
-                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                        <template x-for="(opt, idx) in filtered" :key="idx">
-                          <li @click="input = opt; save()" x-text="opt"></li>
-                        </template>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="person-card__row" x-data="inlineDateField('person', person.id, 'birthdate', operation_id)">
-                  <span class="person-card__label">Geb. Datum: </span>
-                  <div class="inline-edit-wrapper">
-                    <span class="inline-editable" x-show="!editing" @click="open(person.birthdate)" x-text="displayDate(person.birthdate)"></span>
-                    <div x-show="editing">
-                      <input x-ref="inp" type="date" x-model="input" class="inline-input"
-                        @blur="save()" @keydown.enter.prevent="save()" @keydown.escape="editing = false">
-                    </div>
-                  </div>
-                </div>
-                <div class="person-card__row">
-                  <span class="person-card__label">Geschlecht: </span>
-                  <select class="inline-select" style="text-align: right"
-                    @change="saveField('person', person.id, 'gender', $event.target.value, operation_id)">
-                    <option value="" :selected="!person.gender">—</option>
-                    <option value="Männlich" :selected="person.gender == 'Männlich'">Männlich</option>
-                    <option value="Weiblich" :selected="person.gender == 'Weiblich'">Weiblich</option>
-                    <option value="Divers" :selected="person.gender == 'Divers'">Divers</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <div class="person-card__row person-card__row--check">
-                  <span class="person-card__label2">Verletzt: </span>
-                  <input type="checkbox" class="inline-checkbox"
-                    :checked="!!person.hurt"
-                    @change="saveField('person', person.id, 'hurt', $event.target.checked ? 1 : 0, operation_id)">
-                </div>
-
-                <div class="person-card__row" x-data="inlineField('person', person.id, 'handover', operation_id)">
-                  <span class="person-card__label2">Übergabe: </span>
-                  <div class="inline-edit-wrapper">
-                    <span class="inline-editable" x-show="!editing" @click="open(person.handover)" x-text="person.handover || '—'"></span>
-                    <div x-show="editing">
-                      <input x-ref="inp" x-model="input" class="inline-input"
-                        :size="Math.max(2, (input || '—').length)"
-                        @input="doFilter()" @keydown.tab="tabComplete($event)"
-                        @keydown.enter.prevent="save()" @keydown.escape="editing = false; filtered = []"
-                        @blur="save()">
-                      <ul class="autocomplete-list" x-show="filtered.length > 0" @mousedown.prevent>
-                        <template x-for="(opt, idx) in filtered" :key="idx">
-                          <li @click="input = opt; save()" x-text="opt"></li>
-                        </template>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="person-card__row person-card__row--check">
-                  <span class="person-card__label2">Triage: </span>
-                  <div class="triage-boxes">
-                    <button class="triage-box triage-box--gray"   :class="{'triage-box--active': person.triage == 0}" @click="saveField('person', person.id, 'triage', 0, operation_id)"></button>
-                    <button class="triage-box triage-box--green"  :class="{'triage-box--active': person.triage == 1}" @click="saveField('person', person.id, 'triage', 1, operation_id)"></button>
-                    <button class="triage-box triage-box--yellow" :class="{'triage-box--active': person.triage == 2}" @click="saveField('person', person.id, 'triage', 2, operation_id)"></button>
-                    <button class="triage-box triage-box--red"    :class="{'triage-box--active': person.triage == 3}" @click="saveField('person', person.id, 'triage', 3, operation_id)"></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="person-card__row person-card__row--block" x-show="open">
-                <span class="person-card__label2">Info:</span>
-                <textarea class="field-textarea"
-                :value="person.info"
-                x-init="$nextTick(() => { $el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px' })"
-                @input="$el.style.height = '0'; $el.style.height = $el.scrollHeight + 'px'"
-                @blur="saveField('person', person.id, 'info', $event.target.value, operation_id)"></textarea>
-            </div>
-          </div>
-        </template>
-        <button class="add-person-btn" @click="addPerson(mission.id)">+</button>
-      </div>
-
-    </div>
-  </template>
-
 </section>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/operation_edit.js') }}"></script>
 {% endblock %}

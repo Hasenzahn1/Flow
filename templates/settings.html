@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% from "_icons.html" import icon_settings %}
+
+{% block title %}Einstellungen &middot; FLOW{% endblock %}
+{% block header_extra %}Einstellungen{% endblock %}
+
+{% block content %}
+<section class="settings-page">
+  <div class="settings-page__inner">
+    <header class="settings-hero">
+      <span class="settings-hero__icon">{{ icon_settings() }}</span>
+      <div>
+        <h1>Einstellungen</h1>
+        <p>Administrative Einstellungen für FLOW verwalten.</p>
+      </div>
+    </header>
+
+    <article class="settings-card" x-data='passwordSettings({{ uses_default_password|tojson }})'>
+      <header>
+        <div>
+          <p class="settings-card__eyebrow">Sicherheit</p>
+          <h2>Admin-Passwort ändern</h2>
+        </div>
+        <span class="settings-card__role">Admin</span>
+      </header>
+
+      {% if uses_default_password %}
+      <div class="settings-warning" x-show="defaultPassword" role="status">
+        Das Standardpasswort <code>admin</code> ist noch aktiv. Bitte ändere es für den regulären Betrieb.
+      </div>
+      {% endif %}
+
+      <form class="settings-password-form" @submit.prevent="submit()">
+        <label>
+          Aktuelles Passwort
+          <input type="password" x-model="currentPassword" autocomplete="current-password" required>
+        </label>
+        <label>
+          Neues Passwort
+          <input type="password" x-model="newPassword" autocomplete="new-password"
+                 minlength="8" required aria-describedby="password-requirement">
+          <small id="password-requirement">Mindestens 8 Zeichen</small>
+        </label>
+        <label>
+          Neues Passwort bestätigen
+          <input type="password" x-model="confirmation" autocomplete="new-password" minlength="8" required>
+        </label>
+
+        <p class="settings-form-message settings-form-message--error" x-show="error" x-cloak
+           x-text="error" role="alert"></p>
+        <p class="settings-form-message settings-form-message--success" x-show="success" x-cloak
+           x-text="success" role="status"></p>
+
+        <div class="settings-password-form__actions">
+          <button type="submit" :aria-busy="busy"
+                  :disabled="busy || !currentPassword || newPassword.length < 8 || !confirmation"
+                  x-text="busy ? 'Wird gespeichert …' : 'Passwort ändern'"></button>
+        </div>
+      </form>
+    </article>
+
+    <article class="settings-card settings-tools" id="tool-settings"
+             x-data="toolSettings()" x-init="load()">
+      <header>
+        <div>
+          <p class="settings-card__eyebrow">Navigation</p>
+          <h2>Weitere Tools</h2>
+        </div>
+        <button type="button" class="settings-tools__add" @click="openCreate()"
+                :disabled="loading || busy">Tool hinzufügen</button>
+      </header>
+
+      <p class="settings-tools__intro">
+        Lege fest, welche zusätzlichen Tools angezeigt werden und in welcher Reihenfolge sie erscheinen.
+      </p>
+
+      <p class="settings-form-message settings-form-message--error" x-show="error" x-cloak
+         x-text="error" role="alert"></p>
+      <p class="settings-form-message settings-form-message--success" x-show="success" x-cloak
+         x-text="success" role="status"></p>
+
+      <div class="settings-tools__loading" x-show="loading" aria-live="polite">Tools werden geladen …</div>
+
+      <form class="tool-editor" x-show="editorOpen" x-cloak @submit.prevent="save()">
+        <div class="tool-editor__heading">
+          <div>
+            <p class="settings-card__eyebrow" x-text="editingId === null ? 'Neues Tool' : 'Tool bearbeiten'"></p>
+            <h3 x-text="editingId === null ? 'Tool hinzufügen' : draft.label"></h3>
+          </div>
+          <span class="tool-editor__preview" :class="'tool-editor__preview--' + draft.color"
+                x-html="iconFor(draft.icon_path)" aria-hidden="true"></span>
+        </div>
+
+        <div class="tool-editor__fields">
+          <label>
+            Titel
+            <input type="text" x-model="draft.label" required maxlength="100"
+                   placeholder="Zum Beispiel Wetterkarte">
+          </label>
+          <label>
+            Route oder URL
+            <input type="text" x-model="draft.route" required
+                   placeholder="/interne-route oder https://example.org">
+          </label>
+          <label class="tool-editor__description">
+            Beschreibung
+            <textarea x-model="draft.description" rows="2" maxlength="300"
+                      placeholder="Kurze Beschreibung des Tools"></textarea>
+          </label>
+          <label>
+            Icon
+            <select x-model="draft.icon_path">
+              <template x-for="icon in icons" :key="icon.value">
+                <option :value="icon.value" x-text="icon.label"></option>
+              </template>
+            </select>
+          </label>
+          <label>
+            Kartenfarbe
+            <select x-model="draft.color">
+              <option value="blue">Blau</option>
+              <option value="cyan">Cyan</option>
+              <option value="green">Grün</option>
+              <option value="amber">Amber</option>
+              <option value="red">Rot</option>
+              <option value="violet">Violett</option>
+            </select>
+          </label>
+          <label class="tool-editor__active">
+            <input type="checkbox" x-model="draft.active">
+            Tool sofort anzeigen
+          </label>
+        </div>
+
+        <div class="tool-editor__actions">
+          <button type="button" class="secondary outline" @click="closeEditor()" :disabled="busy">Abbrechen</button>
+          <button type="submit" :disabled="busy || !draft.label.trim() || !draft.route.trim()"
+                  :aria-busy="busy" x-text="busy ? 'Wird gespeichert …' : 'Speichern'"></button>
+        </div>
+      </form>
+
+      <div class="settings-tools__empty" x-show="!loading && tools.length === 0 && !editorOpen" x-cloak>
+        Noch keine Tools angelegt. Füge das erste Tool hinzu, um den Bereich zu aktivieren.
+      </div>
+
+      <div class="settings-tools__list" x-show="!loading && tools.length > 0" x-cloak>
+        <template x-for="(tool, index) in tools" :key="tool.id">
+          <section class="settings-tool" :class="{ 'settings-tool--inactive': !tool.active }">
+            <span class="settings-tool__icon" :class="'settings-tool__icon--' + tool.color"
+                  x-html="iconFor(tool.icon_path)" aria-hidden="true"></span>
+            <div class="settings-tool__copy">
+              <strong x-text="tool.label"></strong>
+              <small x-text="tool.route"></small>
+            </div>
+            <label class="settings-tool__toggle">
+              <input type="checkbox" :checked="Boolean(tool.active)"
+                     @change="toggleActive(tool, $event.target.checked)" :disabled="busy">
+              <span>Aktiv</span>
+            </label>
+            <div class="settings-tool__actions">
+              <button type="button" class="secondary outline" @click="move(index, -1)"
+                      :disabled="busy || index === 0" :aria-label="tool.label + ' nach oben verschieben'">↑</button>
+              <button type="button" class="secondary outline" @click="move(index, 1)"
+                      :disabled="busy || index === tools.length - 1" :aria-label="tool.label + ' nach unten verschieben'">↓</button>
+              <button type="button" class="secondary outline" @click="openEdit(tool)" :disabled="busy">Bearbeiten</button>
+              <button type="button" class="secondary outline settings-tool__delete"
+                      @click="remove(tool)" :disabled="busy">Löschen</button>
+            </div>
+          </section>
+        </template>
+      </div>
+    </article>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tool-settings.js') }}"></script>
+{% endblock %}

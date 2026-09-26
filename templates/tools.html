@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% from "_icons.html" import icon_by_key, icon_chevron_right, icon_external_link, icon_grid %}
+
+{% block title %}Weitere Tools &middot; FLOW{% endblock %}
+{% block header_extra %}Weitere Tools{% endblock %}
+
+{% block content %}
+<section class="home-page tools-page">
+  <div class="home-page__inner">
+    <header class="home-hero">
+      <div class="home-hero__copy">
+        <h1 class="hero__title">Weitere Tools</h1>
+        <p class="hero__subtitle">Zusätzliche Module und Funktionen für den Einsatz.</p>
+      </div>
+    </header>
+
+    {% if tools %}
+    <div class="tool-grid" aria-label="Weitere Tools">
+      {% for tool in tools %}
+      <a class="tool-card tool-card--{{ tool.color }}" href="{{ tool.route }}"
+         {% if tool.is_external %}target="_blank" rel="noopener noreferrer"{% endif %}>
+        <span class="tool-card__icon">{{ icon_by_key(tool.icon_path) }}</span>
+        <h2 class="tool-card__title">{{ tool.label }} {{ icon_chevron_right() }}</h2>
+        <p class="tool-card__desc">{{ tool.description or 'Dieses Tool öffnen und verwenden.' }}</p>
+        <div class="tool-card__stat">
+          {% if tool.is_external %}{{ icon_external_link() }}{% else %}{{ icon_grid() }}{% endif %}
+          <span>Tool öffnen</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="tools-empty" role="status">
+      <span class="tools-empty__icon">{{ icon_grid() }}</span>
+      <h2>Keine weiteren Tools aktiviert</h2>
+      <p>Aktuell stehen in diesem Bereich keine zusätzlichen Tools zur Verfügung.</p>
+      {% if is_admin %}
+      <a href="/settings#tool-settings" role="button">Tools in den Einstellungen verwalten</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,399 @@
+{% extends "base.html" %}
+
+{% from "_icons.html" import icon_chevron_right, icon_users, icon_user_plus, icon_search, icon_plus, icon_scan, icon_camera, icon_utensils, icon_gender, icon_phone, icon_upload, icon_check_circle, icon_pencil, icon_trash, icon_more, icon_file %}
+
+{% block title %}Helferregistrierung &middot; {{ operation.name }} &middot; FLOW{% endblock %}
+{% block header_extra %}<a href="/operation_overview" class="topbar__breadcrumb-link">Lagen</a>{{ icon_chevron_right('topbar__sep') }}<a href="/operation_overview/{{ operation.id }}" class="topbar__breadcrumb-link">{{ operation.name }}</a>{{ icon_chevron_right('topbar__sep') }}<span class="topbar__operation-name">Helferregistrierung</span>{% endblock %}
+
+{% block content %}
+<section class="helpers-page" x-data="helpersPage({{ operation.id }})" @keydown.escape.window="exportMenuOpen ? (exportMenuOpen = false) : (qualificationEditorId ? closeQualificationEditor() : (actionMenuHelper ? closeActionMenu() : (assignmentModalOpen ? closeAssignmentModal() : (modalOpen && closeModal()))))">
+  <div class="helpers-hero">
+    <div class="helpers-page__inner">
+      <h1>Helferregistrierung</h1>
+      <p>Helfer erfassen, verwalten und Einsatzstatus verfolgen.</p>
+    </div>
+  </div>
+
+  <div class="helpers-page__inner helpers-page__body">
+    <section class="helpers-stats" aria-label="Helferstatistik">
+      <article class="helper-stat-card">
+        <span class="helper-stat-card__icon">{{ icon_users() }}</span>
+        <div class="helper-stat-card__content">
+          <span>Anwesende Helfer</span>
+          <strong x-text="stats.status.Anwesend"></strong>
+        </div>
+      </article>
+
+      <article class="helper-stat-card">
+        <span class="helper-stat-card__icon">{{ icon_utensils() }}</span>
+        <div class="helper-stat-card__content helper-stat-card__content--wide">
+          <span>Ernährungswerte</span>
+          <div class="stat-pills">
+            <span class="tag tag--blue">Ohne Einschränkung <b x-text="stats.nutrition['ohne Einschränkung'] || 0"></b></span>
+            <span class="tag tag--green">Vegetarisch <b x-text="stats.nutrition.vegetarisch || 0"></b></span>
+            <span class="tag tag--purple">Vegan <b x-text="stats.nutrition.vegan || 0"></b></span>
+            <span class="tag tag--amber">Unverträglichkeit <b x-text="intoleranceCount"></b></span>
+          </div>
+        </div>
+      </article>
+
+      <article class="helper-stat-card">
+        <span class="helper-stat-card__icon">{{ icon_gender() }}</span>
+        <div class="helper-stat-card__content helper-stat-card__content--wide">
+          <span>Geschlecht</span>
+          <div class="stat-pills">
+            <span class="tag tag--blue">Männlich <b x-text="stats.gender.m"></b></span>
+            <span class="tag tag--pink">Weiblich <b x-text="stats.gender.w"></b></span>
+            <span class="tag tag--purple">Divers <b x-text="stats.gender.d"></b></span>
+            <span class="tag tag--muted">Keine Angabe <b x-text="stats.gender.none"></b></span>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="helpers-panel">
+      <div class="helpers-toolbar">
+        <label class="helpers-search">
+          {{ icon_search() }}
+          <input type="search" :value="filters.q"
+                 @input.debounce.300ms="searchHelpers($event.target.value)"
+                 placeholder="Name, Fahrzeug, Qualifikation, Geschlecht …" aria-label="Helfer suchen">
+        </label>
+        <select x-model="filters.vehicle" @change="loadHelpers()" aria-label="Fahrzeug filtern">
+          <option value="">Alle Fahrzeuge</option>
+          <option value="unassigned">Nicht zugeordnet</option>
+          <template x-for="vehicle in vehicles" :key="vehicle.id">
+            <option :value="vehicle.id" x-text="vehicle.call_sign"></option>
+          </template>
+        </select>
+        <select x-model="filters.qualification" @change="loadHelpers()" aria-label="Qualifikation filtern">
+          <option value="">Alle Qualifikationen</option>
+          <template x-for="qualification in qualificationOptions" :key="qualification.short">
+            <option :value="qualification.short" x-text="qualification.label"></option>
+          </template>
+        </select>
+        <select x-model="filters.nutrition" @change="loadHelpers()" aria-label="Ernährung filtern">
+          <option value="">Alle Ernährungsarten</option>
+          <template x-for="nutrition in nutritionOptions" :key="nutrition">
+            <option :value="nutrition" x-text="nutrition"></option>
+          </template>
+        </select>
+        <select x-model="filters.status" @change="loadHelpers()" aria-label="Status filtern">
+          <option value="">Alle Status</option>
+          <option value="Anwesend">Anwesend</option>
+          <option value="Abgemeldet">Abgemeldet</option>
+        </select>
+        <div class="helpers-export" @click.outside="exportMenuOpen = false">
+          <button type="button" class="helpers-export__trigger" :aria-expanded="exportMenuOpen"
+                  aria-haspopup="menu" @click="exportMenuOpen = !exportMenuOpen">
+            {{ icon_file() }} PDF exportieren
+          </button>
+          <div class="helpers-export__menu" x-show="exportMenuOpen" x-cloak role="menu">
+            <a role="menuitem" href="/api/operation_overview/{{ operation.id }}/export?section=helpers_summary&amp;bundle=pdf"
+               @click="exportMenuOpen = false">Übersichtlich</a>
+            <a role="menuitem" href="/api/operation_overview/{{ operation.id }}/export?section=helpers_detail&amp;bundle=pdf"
+               @click="exportMenuOpen = false">Detailliert</a>
+          </div>
+        </div>
+        <button type="button" class="helpers-add-btn" @click="openModal()">{{ icon_plus() }} Helfer erfassen</button>
+      </div>
+
+      <div class="helpers-table-wrap">
+        <table class="helpers-table">
+          <thead>
+            <tr><th>Name</th><th>Qualifikationen</th><th>Fahrzeug</th><th>Geschlecht</th><th>Ernährung</th><th>Mobil</th><th>Einsatzort</th><th>Erfasst am</th><th>Status</th><th>Aktionen</th></tr>
+          </thead>
+          <tbody>
+            <template x-for="helper in helpers" :key="helper.id">
+              <tr :class="qualificationRowClass(helper)">
+                <td class="helper-name-cell">
+                  <div class="helper-table-name">
+                    <input class="helper-table-input" :value="helper.first_name || ''" aria-label="Vorname"
+                           @change="updateField(helper, 'first_name', $event.target.value)" @keydown.enter.prevent="$event.target.blur()">
+                    <input class="helper-table-input helper-table-input--strong" :value="helper.last_name || ''" aria-label="Nachname"
+                           @change="updateField(helper, 'last_name', $event.target.value)" @keydown.enter.prevent="$event.target.blur()">
+                  </div>
+                </td>
+                <td class="helper-qualifications-cell" @click.outside="qualificationEditorId === helper.id && closeQualificationEditor()">
+                  <div class="qualification-tags qualification-tags--compact" aria-label="Aktive Qualifikationen">
+                    <template x-for="qualification in qualificationOptions" :key="qualification.short">
+                      <button type="button"
+                              x-show="hasQualification(helper, qualification.short)"
+                              class="qualification-tag qualification-tag--active"
+                              :title="qualification.label"
+                              aria-pressed="true"
+                              @click="toggleQualification(helper, qualification.short)"
+                              x-text="qualification.short"></button>
+                    </template>
+                    <button type="button" class="qualification-tag qualification-tag--add"
+                            x-show="(helper.qualifications || []).length < qualificationOptions.length"
+                            :aria-expanded="qualificationEditorId === helper.id"
+                            :title="qualificationEditorId === helper.id ? 'Auswahl schließen' : 'Qualifikation hinzufügen'"
+                            @click.stop="toggleQualificationEditor(helper)">+</button>
+                  </div>
+                  <div class="qualification-picker" x-show="qualificationEditorId === helper.id" x-cloak>
+                    <span>Qualifikation hinzufügen</span>
+                    <div class="qualification-tags qualification-tags--compact">
+                      <template x-for="qualification in qualificationOptions" :key="qualification.short">
+                        <button type="button" class="qualification-tag"
+                                x-show="!hasQualification(helper, qualification.short)"
+                                :title="qualification.label"
+                                aria-pressed="false"
+                                @click="toggleQualification(helper, qualification.short)"
+                                x-text="qualification.short"></button>
+                      </template>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <button type="button" class="helper-vehicle-button"
+                          :class="{'helper-vehicle-button--assigned': helper.vehicle_id}"
+                          :disabled="helper.status !== 'Anwesend'"
+                          @click="openAssignmentModal(helper)">
+                    <span x-text="helper.vehicle_call_sign || (helper.status === 'Anwesend' ? 'Zuordnen' : 'Abgemeldet')"></span>
+                    <small x-show="helper.vehicle_role === 'leader'">Gruppenführer</small>
+                  </button>
+                </td>
+                <td>
+                  <select class="helper-table-select" :class="genderClass(helper.gender)" :value="helper.gender || ''"
+                          aria-label="Geschlecht" @change="updateField(helper, 'gender', $event.target.value)">
+                    <option value="">Keine Angabe</option><option value="m">Männlich</option><option value="w">Weiblich</option><option value="d">Divers</option>
+                  </select>
+                </td>
+                <td>
+                  <select class="helper-table-select" :class="nutritionClass(helper.nutrition_type)" :value="helper.nutrition_type || ''"
+                          aria-label="Ernährung" @change="updateField(helper, 'nutrition_type', $event.target.value)">
+                    <option value="">Keine Angabe</option>
+                    <template x-for="nutrition in nutritionOptions" :key="nutrition"><option :value="nutrition" x-text="nutrition"></option></template>
+                  </select>
+                </td>
+                <td>
+                  <label class="helper-table-with-icon">{{ icon_phone() }}
+                    <input class="helper-table-input" :value="helper.mobile || ''" aria-label="Mobilnummer" placeholder="—"
+                           @change="updateField(helper, 'mobile', $event.target.value)" @keydown.enter.prevent="$event.target.blur()">
+                  </label>
+                </td>
+                <td><input class="helper-table-input" :value="helper.deployment_location || ''" aria-label="Einsatzort" placeholder="—"
+                           @change="updateField(helper, 'deployment_location', $event.target.value)" @keydown.enter.prevent="$event.target.blur()"></td>
+                <td x-text="formatRegistered(helper.registered_at)"></td>
+                <td>
+                  <select class="helper-table-select helper-table-status"
+                          :class="helper.status === 'Anwesend' ? 'helper-status--present' : 'helper-status--away'"
+                          :value="helper.status" aria-label="Status" @change="updateField(helper, 'status', $event.target.value)">
+                    <option value="Anwesend">Anwesend</option><option value="Abgemeldet">Abgemeldet</option>
+                  </select>
+                </td>
+                <td class="helper-actions">
+                  <button type="button" class="helper-actions-trigger" aria-label="Aktionen"
+                          :aria-expanded="actionMenuHelper?.id === helper.id"
+                          @click.stop="toggleActionMenu($event, helper)">{{ icon_more() }}</button>
+                </td>
+              </tr>
+            </template>
+            <tr x-show="!loading && helpers.length === 0"><td colspan="10" class="helpers-empty">Keine passenden Helfer gefunden.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </section>
+  </div>
+
+  <template x-teleport="body">
+    <div class="helper-actions-popover" x-show="actionMenuHelper" x-cloak
+         :style="actionMenuStyle" @click.outside="closeActionMenu()">
+      <button type="button" @click="editHelper(actionMenuHelper); closeActionMenu()">{{ icon_pencil() }} Bearbeiten</button>
+      <button type="button" @click="toggleStatus(actionMenuHelper); closeActionMenu()"
+              x-text="actionMenuHelper?.status === 'Anwesend' ? 'Abmelden' : 'Anmelden'"></button>
+      <button type="button" class="danger" @click="removeHelper(actionMenuHelper); closeActionMenu()">{{ icon_trash() }} Löschen</button>
+    </div>
+  </template>
+
+  <div class="helper-modal" x-show="modalOpen" x-cloak @click.self="closeModal()">
+    <section class="helper-modal__dialog"
+             :class="{'helper-modal__dialog--manual': tab === 'manual' || editingId}"
+             role="dialog" aria-modal="true" aria-labelledby="helper-modal-title">
+      <header class="helper-modal__header">
+        <h2 id="helper-modal-title" x-text="editingId ? 'Helfer bearbeiten' : 'Helfer erfassen'"></h2>
+        <button type="button" class="helper-modal__close" @click="closeModal()" aria-label="Dialog schließen">×</button>
+      </header>
+
+      <div class="helper-modal__tabs" x-show="!editingId">
+        <button type="button" :class="{ active: tab === 'scan' }" @click="switchTab('scan')">{{ icon_scan() }} QR / Barcode scannen</button>
+        <button type="button" :class="{ active: tab === 'manual' }" @click="switchTab('manual')">{{ icon_user_plus() }} Manuell anlegen</button>
+      </div>
+
+      <div class="helper-modal__body">
+        <section x-show="tab === 'scan' && !editingId" class="helper-scan-panel">
+          <div class="scanner-capture" :class="{ 'scanner-capture--camera': cameraRunning }">
+            <div class="camera-stage" x-show="cameraRunning" x-cloak>
+              <video x-ref="cameraVideo" autoplay muted playsinline></video>
+              <svg class="camera-overlay" aria-hidden="true"><polygon :points="overlayPoints"></polygon></svg>
+            </div>
+            <div class="scanner-capture__placeholder" x-show="!cameraRunning">
+              <span>{{ icon_scan() }}</span>
+              <strong>QR-Code oder Barcode scannen</strong>
+              <small>Unterstützt Barcodescanner und Handy-Kamera.</small>
+            </div>
+            <input x-ref="scannerInput" class="scanner-wedge-input" type="text" x-model="scannerValue"
+                   @keydown.enter.prevent="submitScanner()" autocomplete="off"
+                   aria-label="Eingabe des Barcode-Scanners" placeholder="Scanner-Eingabe …">
+            <div class="scanner-actions">
+              <button type="button" class="scanner-primary" @click="$refs.scannerInput.focus()">{{ icon_scan() }} Scanner bereit</button>
+              <button type="button" @click="cameraRunning ? stopCamera() : startCamera()" :disabled="!cameraSupported">
+                {{ icon_camera() }} <span x-text="cameraRunning ? 'Kamera stoppen' : 'Kamera öffnen'"></span>
+              </button>
+              <button type="button" @click="$refs.imageInput.click()">{{ icon_upload() }} Bild laden</button>
+              <input x-ref="imageInput" type="file" accept="image/png,image/jpeg,image/bmp,.png,.jpg,.jpeg,.bmp" hidden @change="decodeImage($event)">
+            </div>
+            <div class="camera-controls" x-show="cameraRunning && cameras.length > 1" x-cloak>
+              <label>Kamera
+                <select x-model="selectedCamera" @change="restartCamera()">
+                  <template x-for="(camera, index) in cameras" :key="camera.deviceId">
+                    <option :value="camera.deviceId" x-text="camera.label || 'Kamera ' + index"></option>
+                  </template>
+                </select>
+              </label>
+            </div>
+            <p class="camera-hint" x-show="!cameraSupported" x-text="cameraHint"></p>
+          </div>
+
+          <template x-if="preview">
+            <div class="helper-preview">
+              <header>
+                <strong>Erkannte Person (Vorschau)</strong>
+                <span class="scan-success">{{ icon_check_circle() }} <span x-text="preview.message"></span></span>
+              </header>
+              <p class="merge-notice" x-show="preview.duplicate">Bereits erfasste Person gefunden – leere Daten werden ergänzt.</p>
+              <dl class="helper-preview-grid">
+                <div :class="{ conflict: isConflict('first_name') }"><dt>Vorname</dt><dd x-text="form.first_name || '—'"></dd></div>
+                <div :class="{ conflict: isConflict('last_name') }"><dt>Nachname</dt><dd x-text="form.last_name || '—'"></dd></div>
+                <div :class="{ conflict: isConflict('birth_date') }"><dt>Geburtsdatum</dt><dd x-text="formatBirthDate(form.birth_date)"></dd></div>
+                <div :class="{ conflict: isConflict('mobile') }"><dt>Mobilnummer</dt><dd x-text="form.mobile || '—'"></dd></div>
+                <div :class="{ conflict: isConflict('gender') }"><dt>Geschlecht</dt><dd x-text="genderLabel(form.gender)"></dd></div>
+                <div :class="{ conflict: isConflict('nutrition_type') }"><dt>Ernährung</dt><dd x-text="nutritionLabel(form)"></dd></div>
+                <div :class="{ conflict: isConflict('district_association') }"><dt>Kreisverband</dt><dd x-text="form.district_association || '—'"></dd></div>
+                <div :class="{ conflict: isConflict('deployment_location') }"><dt>Einsatzort</dt><dd x-text="form.deployment_location || '—'"></dd></div>
+                <div><dt>Gemeinschaft</dt><dd x-text="form.community || '—'"></dd></div>
+                <div><dt>Quelle</dt><dd x-text="preview.source"></dd></div>
+                <div class="drk-check" x-show="preview.source === 'DRK-Server-QR'"><dt>Mitgliedsnummer</dt><dd x-text="form.membership_number || '—'"></dd></div>
+                <div class="drk-check" x-show="preview.source === 'DRK-Server-QR'"><dt>KV-Code (Rohwert)</dt><dd x-text="form.district_association_raw || '—'"></dd></div>
+                <div class="drk-check" x-show="preview.source === 'DRK-Server-QR'"><dt>Ausweisnummer</dt><dd x-text="form.card_number || '—'"></dd></div>
+                <div class="drk-check" x-show="preview.source === 'DRK-Server-QR'"><dt>Prüfcode</dt><dd x-text="form.verification_code || '—'"></dd></div>
+              </dl>
+              <p class="conflict-hint" x-show="preview.conflicts.length">Abweichende vorhandene Werte sind markiert und werden nicht überschrieben.</p>
+            </div>
+          </template>
+        </section>
+
+        <form x-show="tab === 'manual' || editingId" class="helper-form" @submit.prevent="saveHelper()" x-cloak>
+          <fieldset><legend>Person</legend><div class="helper-form-grid">
+            <label>Nachname *<input x-model="form.last_name" required autocomplete="family-name"></label>
+            <label>Vorname *<input x-model="form.first_name" required autocomplete="given-name"></label>
+            <label>Geburtsdatum *<input type="date" x-model="form.birth_date" required></label>
+            <label>Geschlecht<select x-model="form.gender"><option value="">Keine Angabe</option><option value="m">Männlich</option><option value="w">Weiblich</option><option value="d">Divers</option></select></label>
+            <label>Straße<input x-model="form.street" autocomplete="street-address"></label>
+            <label>PLZ<input x-model="form.postal_code" autocomplete="postal-code"></label>
+            <label>Ort<input x-model="form.city" autocomplete="address-level2"></label>
+            <label>Nationalität<input x-model="form.nationality"></label>
+            <label>Mobilnummer<input type="tel" x-model="form.mobile" autocomplete="tel"></label>
+            <label>E-Mail<input type="email" x-model="form.email" autocomplete="email"></label>
+          </div></fieldset>
+
+          <fieldset><legend>Organisation und Ernährung</legend><div class="helper-form-grid">
+            <label>Kreisverband<input x-model="form.district_association"></label>
+            <label>Gemeinschaft<input x-model="form.community"></label>
+            <label>Ernährung<select x-model="form.nutrition_type"><option value="">Keine Angabe</option><template x-for="item in nutritionOptions" :key="item"><option :value="item" x-text="item"></option></template></select></label>
+            <label x-show="form.nutrition_type === 'Sonstiges'">Freitext<input x-model="form.nutrition_note"></label>
+          </div></fieldset>
+
+          <fieldset><legend>Qualifikationen</legend>
+            <div class="qualification-tags qualification-tags--expanded">
+              <template x-for="qualification in qualificationOptions" :key="qualification.short">
+                <button type="button" class="qualification-tag"
+                        :class="{ 'qualification-tag--active': hasQualification(form, qualification.short) }"
+                        :aria-pressed="hasQualification(form, qualification.short)"
+                        @click="toggleFormQualification(qualification.short)">
+                  <span x-text="qualification.label"></span><small x-text="qualification.short"></small>
+                </button>
+              </template>
+            </div>
+          </fieldset>
+
+          <fieldset><legend>Einsatz</legend><div class="helper-form-grid">
+            <label>Einsatzort<input x-model="form.deployment_location"></label>
+            <label>Einsatzbeginn<input type="datetime-local" x-model="form.deployment_start"></label>
+            <label>Einsatzende<input type="datetime-local" x-model="form.deployment_end"></label>
+            <label class="helper-form-grid__wide">Einsatzinformationen<textarea x-model="form.deployment_info" rows="2"></textarea></label>
+          </div></fieldset>
+
+          <fieldset :class="{ 'drk-fieldset': rawSource === 'DRK-Server-QR' }"><legend>DRK-Ausweis</legend><div class="helper-form-grid">
+            <label>Mitgliedsnummer<input x-model="form.membership_number"></label>
+            <label>Kreisverband-Code (Rohwert)<input x-model="form.district_association_raw"></label>
+            <label>Ausweisnummer<input x-model="form.card_number"></label>
+            <label>Prüfcode<input x-model="form.verification_code"></label>
+          </div></fieldset>
+
+          <fieldset x-show="editingId"><legend>Systemdaten</legend><div class="helper-form-grid">
+            <label>Status<select x-model="form.status"><option value="Anwesend">Anwesend</option><option value="Abgemeldet">Abgemeldet</option></select></label>
+            <label>Quelle<input :value="form.source_display || 'Manuell'" disabled></label>
+          </div></fieldset>
+        </form>
+
+        <p class="helper-modal__error" x-show="modalError" x-text="modalError"></p>
+      </div>
+
+      <footer class="helper-modal__footer">
+        <template x-if="tab === 'scan' && !editingId && preview">
+          <div class="helper-modal__footer-pair">
+            <button type="button" class="primary" @click="saveHelper()" :disabled="saving">{{ icon_check_circle() }} <span x-text="saving ? 'Speichert …' : 'Übernehmen'"></span></button>
+            <button type="button" @click="switchTab('manual')">{{ icon_pencil() }} Manuell ergänzen</button>
+          </div>
+        </template>
+        <template x-if="tab === 'manual' || editingId">
+          <div class="helper-modal__footer-pair">
+            <button type="button" @click="closeModal()">Abbrechen</button>
+            <button type="button" class="primary" @click="saveHelper()" :disabled="saving">{{ icon_check_circle() }} <span x-text="saving ? 'Speichert …' : (editingId ? 'Änderungen speichern' : 'Helfer speichern')"></span></button>
+          </div>
+        </template>
+      </footer>
+    </section>
+  </div>
+
+  <div class="helper-modal" x-show="assignmentModalOpen" x-cloak @click.self="closeAssignmentModal()">
+    <section class="helper-modal__dialog helper-assignment-dialog" role="dialog" aria-modal="true" aria-labelledby="helper-assignment-title">
+      <header class="helper-modal__header">
+        <div><h2 id="helper-assignment-title">Fahrzeugzuordnung</h2><p x-text="assignmentHelper ? `${assignmentHelper.first_name} ${assignmentHelper.last_name}` : ''"></p></div>
+        <button type="button" class="helper-modal__close" @click="closeAssignmentModal()" aria-label="Dialog schließen">×</button>
+      </header>
+      <div class="helper-modal__body helper-assignment-form">
+        <label>Fahrzeug
+          <select x-model.number="assignmentForm.vehicle_id">
+            <option value="">Nicht zugeordnet</option>
+            <template x-for="vehicle in vehicles" :key="vehicle.id"><option :value="vehicle.id" x-text="vehicle.call_sign"></option></template>
+          </select>
+        </label>
+        <div class="helper-assignment-role">
+          <span>Funktion</span>
+          <button type="button" class="qualification-tag"
+                  :class="{ 'qualification-tag--active': assignmentForm.role === 'leader' }"
+                  :aria-pressed="assignmentForm.role === 'leader'"
+                  :disabled="!assignmentForm.vehicle_id"
+                  @click="assignmentForm.role = assignmentForm.role === 'leader' ? 'member' : 'leader'">
+            Gruppenführer
+          </button>
+        </div>
+        <p class="helper-assignment-hint" x-show="assignmentHelper?.vehicle_id && assignmentForm.vehicle_id && Number(assignmentForm.vehicle_id) !== assignmentHelper.vehicle_id">Die Person wird aus dem bisherigen Fahrzeug in das neue Fahrzeug verschoben.</p>
+        <p class="helper-modal__error" x-show="assignmentError" x-text="assignmentError"></p>
+      </div>
+      <footer class="helper-modal__footer"><div class="helper-modal__footer-pair"><button type="button" @click="closeAssignmentModal()">Abbrechen</button><button type="button" class="primary" @click="saveAssignment()" :disabled="assignmentSaving">Zuordnung speichern</button></div></footer>
+    </section>
+  </div>
+
+  <div class="helper-toast" x-show="toast" x-transition x-text="toast" x-cloak></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/zxing-browser.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/helpers.js', v='13') }}"></script>
+{% endblock %}

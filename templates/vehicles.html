@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% from "_icons.html" import icon_chevron_right, icon_vehicle, icon_users, icon_file_plus, icon_search, icon_plus, icon_save, icon_pencil, icon_trash, icon_phone, icon_grip, icon_arrow_up, icon_arrow_down %}
+
+{% block title %}Fahrzeugübersicht &middot; {{ operation.name }} &middot; FLOW{% endblock %}
+{% block header_extra %}<a href="/operation_overview" class="topbar__breadcrumb-link">Lagen</a>{{ icon_chevron_right('topbar__sep') }}<a href="/operation_overview/{{ operation.id }}" class="topbar__breadcrumb-link">{{ operation.name }}</a>{{ icon_chevron_right('topbar__sep') }}<span class="topbar__operation-name">Fahrzeugübersicht</span>{% endblock %}
+
+{% block content %}
+<section class="vehicles-page" x-data="vehiclesPage({{ operation.id }})" @keydown.escape.window="closeTopModal()">
+  <div class="vehicles-hero">
+    <div class="vehicles-page__inner">
+      <h1>Fahrzeugübersicht</h1>
+      <p>Fahrzeuge verwalten, besetzen und als Vorlagen speichern.</p>
+    </div>
+  </div>
+
+  <div class="vehicles-page__inner vehicles-page__body">
+    <section class="vehicle-stats" aria-label="Fahrzeugstatistik">
+      <article class="vehicle-stat-card">
+        <span class="vehicle-stat-card__icon">{{ icon_vehicle() }}</span>
+        <div><span>Fahrzeuge gesamt</span><strong x-text="vehicles.length"></strong>
+          <small><b class="status-dot status-dot--good"></b><span x-text="(stats.statuses['Gut besetzt'] || 0) + (stats.statuses.Voll || 0)"></span> gut besetzt&nbsp;&nbsp; <b class="status-dot status-dot--warn"></b><span x-text="(stats.statuses.Unbesetzt || 0) + (stats.statuses.Unvollständig || 0) + (stats.statuses.Überbelegt || 0)"></span> auffällig</small>
+        </div>
+      </article>
+      <article class="vehicle-stat-card vehicle-stat-card--wide">
+        <span class="vehicle-stat-card__icon">{{ icon_users() }}</span>
+        <div><span>Besetzte Plätze</span><strong><span x-text="stats.occupied"></span> / <span x-text="stats.max_seats"></span></strong>
+          <div class="vehicle-stat-progress"><i :style="`width:${occupancyPercent}%`"></i></div>
+          <small x-text="seatSummary"></small>
+        </div>
+      </article>
+      <article class="vehicle-stat-card">
+        <span class="vehicle-stat-card__icon">{{ icon_file_plus() }}</span>
+        <div><span>Vorlagen</span><strong x-text="templateCount"></strong><small>Gespeicherte Fahrzeugvorlagen</small></div>
+      </article>
+    </section>
+
+    <section class="vehicles-panel">
+      <div class="vehicles-toolbar">
+        <label class="vehicles-search">{{ icon_search() }}<input type="search" x-model="query" placeholder="Funkrufname, Typ, Telefon oder Person …" aria-label="Fahrzeuge suchen"></label>
+        <select x-model="typeFilter" aria-label="Fahrzeugtyp filtern"><option value="">Alle Fahrzeugtypen</option><template x-for="type in vehicleTypes" :key="type"><option :value="type" x-text="type"></option></template></select>
+        <select x-model="statusFilter" aria-label="Status filtern"><option value="">Alle Status</option><template x-for="status in statusOptions" :key="status"><option :value="status" x-text="status"></option></template></select>
+        <button type="button" class="vehicle-button vehicle-button--primary" @click="openVehicleModal()">{{ icon_plus() }} Neues Fahrzeug</button>
+        <button type="button" class="vehicle-button" @click="openTemplates()">{{ icon_file_plus() }} Vorlage laden</button>
+        <button type="button" class="vehicle-button" @click="openSaveTemplate()">{{ icon_save() }} Als Vorlage speichern</button>
+      </div>
+
+      <div class="vehicle-grid" x-show="filteredVehicles.length">
+        <template x-for="vehicle in filteredVehicles" :key="vehicle.id">
+          <article class="vehicle-card" :class="`vehicle-card--${statusKey(vehicle.status)}`"
+                   @dragover.prevent @drop.prevent="dropOn(vehicle.id)">
+            <header class="vehicle-card__header">
+              <button class="vehicle-drag" type="button" :disabled="!sortingEnabled" :draggable="sortingEnabled" @dragstart.stop="startDrag(vehicle.id)" title="Zum Sortieren ziehen">{{ icon_grip() }}</button>
+              <div class="vehicle-card__identity">
+                <h2 x-text="vehicle.call_sign"></h2>
+                <div class="vehicle-card__badges"><span class="vehicle-type" x-text="vehicle.vehicle_type"></span><span class="vehicle-status" :class="`vehicle-status--${statusKey(vehicle.status)}`" x-text="vehicle.status"></span></div>
+              </div>
+              <label class="vehicle-phone-inline"><span>Telefon</span><span class="vehicle-phone-inline__field">{{ icon_phone() }}<input type="tel" :value="vehicle.phone || ''" placeholder="Telefonnummer" aria-label="Telefonnummer des Fahrzeugs" @change="updatePhone(vehicle, $event.target.value)" @keydown.enter.prevent="$event.target.blur()"></span></label>
+            </header>
+
+            <div class="vehicle-card__summary">
+              <div class="vehicle-leader"><span>Gruppenführer</span>
+                <select :data-leader-vehicle="vehicle.id" @change="changeLeader(vehicle, $event.target.value)" aria-label="Gruppenführer auswählen">
+                  <option value="">Nicht zugewiesen</option>
+                  <template x-for="person in vehicle.crew" :key="person.id"><option :value="person.id" x-text="personName(person)"></option></template>
+                </select>
+              </div>
+              <div class="vehicle-occupancy">
+                <div><span>Besatzung</span><strong><span x-text="vehicle.crew_count"></span> / <span x-text="vehicle.max_seats"></span></strong></div>
+                <div class="vehicle-seat-row" aria-hidden="true"><template x-for="seat in seatDots(vehicle)" :key="seat.index"><i :class="seat.state"></i></template><small x-show="vehicle.max_seats > 12" x-text="`+${vehicle.max_seats - 12}`"></small></div>
+                <small><span x-text="vehicle.crew_count"></span> von <span x-text="vehicle.max_seats"></span> Plätzen · Soll <span x-text="vehicle.target_occupancy"></span></small>
+                <p class="vehicle-overbooked" x-show="vehicle.over_capacity_by">Überbelegt um <b x-text="vehicle.over_capacity_by"></b> <span x-text="vehicle.over_capacity_by === 1 ? 'Person' : 'Personen'"></span></p>
+              </div>
+            </div>
+
+            <div class="vehicle-crew">
+              <template x-for="person in vehicle.crew" :key="person.id">
+                <span class="vehicle-person" :class="{'vehicle-person--leader': person.role === 'leader'}" :title="personName(person)">
+                  <b x-text="initials(person)"></b><span x-text="personName(person)"></span><button type="button" @click="unassign(person)" :aria-label="personName(person) + ' entfernen'">×</button>
+                </span>
+              </template>
+            </div>
+
+            <footer class="vehicle-card__actions">
+              <button type="button" class="vehicle-card__primary-action" @click="openCrew(vehicle)">{{ icon_plus() }} Person hinzufügen</button>
+              <button type="button" @click="openVehicleModal(vehicle)">{{ icon_pencil() }} Bearbeiten</button>
+              <button type="button" @click="moveVehicle(vehicle, -1)" :disabled="!sortingEnabled || vehicle.id === vehicles[0]?.id" title="Nach vorne" aria-label="Fahrzeug nach vorne verschieben">{{ icon_arrow_up() }}</button>
+              <button type="button" @click="moveVehicle(vehicle, 1)" :disabled="!sortingEnabled || vehicle.id === vehicles[vehicles.length - 1]?.id" title="Nach hinten" aria-label="Fahrzeug nach hinten verschieben">{{ icon_arrow_down() }}</button>
+              <button type="button" class="danger" @click="removeVehicle(vehicle)" title="Fahrzeug löschen" aria-label="Fahrzeug löschen">{{ icon_trash() }}</button>
+            </footer>
+          </article>
+        </template>
+      </div>
+      <p class="vehicles-empty" x-show="!loading && filteredVehicles.length === 0" x-text="vehicles.length ? 'Keine Fahrzeuge entsprechen den Filtern.' : 'Noch keine Fahrzeuge angelegt.'"></p>
+      <footer class="vehicles-panel__footer"><span x-text="`${filteredVehicles.length} von ${vehicles.length} Fahrzeugen angezeigt`"></span><span x-show="!sortingEnabled">Filter zurücksetzen, um die Reihenfolge zu ändern.</span></footer>
+    </section>
+  </div>
+
+  <div class="vehicle-modal" x-show="vehicleModalOpen" x-cloak @click.self="closeVehicleModal()">
+    <form class="vehicle-modal__dialog" @submit.prevent="saveVehicle()">
+      <header><h2 x-text="editingVehicleId ? 'Fahrzeug bearbeiten' : 'Neues Fahrzeug'"></h2><button type="button" @click="closeVehicleModal()">×</button></header>
+      <div class="vehicle-modal__body vehicle-form-grid">
+        <label>Funkrufname *<input x-model="vehicleForm.call_sign" maxlength="120" required placeholder="z. B. Rotkreuz Würzburg 71/1"></label>
+        <label>Fahrzeugtyp *<input x-model="vehicleForm.vehicle_type" list="vehicle-type-suggestions" maxlength="80" required placeholder="z. B. RTW"><datalist id="vehicle-type-suggestions"><template x-for="type in suggestedTypes" :key="type"><option :value="type"></option></template></datalist></label>
+        <label>Telefonnummer<input x-model="vehicleForm.phone" type="tel" maxlength="80" placeholder="Optional"></label>
+        <label>Sollbesetzung *<input x-model.number="vehicleForm.target_occupancy" type="number" min="1" required></label>
+        <label>Maximalsitze *<input x-model.number="vehicleForm.max_seats" type="number" min="1" required></label>
+      </div>
+      <p class="vehicle-modal__error" x-show="modalError" x-text="modalError"></p>
+      <footer><button type="button" @click="closeVehicleModal()">Abbrechen</button><button class="primary" type="submit" :disabled="saving" x-text="saving ? 'Speichert …' : 'Speichern'"></button></footer>
+    </form>
+  </div>
+
+  <div class="vehicle-modal" x-show="crewModalOpen" x-cloak @click.self="crewModalOpen = false">
+    <section class="vehicle-modal__dialog vehicle-modal__dialog--wide">
+      <header><div><h2>Person hinzufügen</h2><p x-text="selectedVehicle?.call_sign"></p></div><button type="button" @click="crewModalOpen = false">×</button></header>
+      <div class="vehicle-modal__body crew-picker">
+        <label class="crew-picker__search">{{ icon_search() }}<input x-model="crewQuery" type="search" placeholder="Anwesende Helfer suchen …"></label>
+        <template x-for="helper in selectableHelpers" :key="helper.id">
+          <div class="crew-picker__row"><span><b x-text="personName(helper)"></b><small x-text="helper.mobile || 'Keine Mobilnummer'"></small></span><button type="button" @click="assign(helper, 'member')">Besatzung</button><button type="button" class="primary" @click="assign(helper, 'leader')">Gruppenführer</button></div>
+        </template>
+        <p class="vehicles-empty" x-show="selectableHelpers.length === 0">Keine unzugeordneten anwesenden Helfer gefunden.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="vehicle-modal" x-show="saveTemplateOpen" x-cloak @click.self="saveTemplateOpen = false">
+    <form class="vehicle-modal__dialog" @submit.prevent="saveTemplate(false)">
+      <header><h2>Fahrzeugvorlage speichern</h2><button type="button" @click="saveTemplateOpen = false">×</button></header>
+      <div class="vehicle-modal__body"><p>Gespeichert werden alle Fahrzeugdaten und die Reihenfolge, jedoch keine Personen.</p><label>Vorlagenname *<input x-model="templateName" maxlength="80" required placeholder="z. B. SEG Behandlung"></label></div>
+      <p class="vehicle-modal__error" x-show="modalError" x-text="modalError"></p>
+      <footer><button type="button" @click="saveTemplateOpen = false">Abbrechen</button><button class="primary" type="submit">Vorlage speichern</button></footer>
+    </form>
+  </div>
+
+  <div class="vehicle-modal" x-show="templatesOpen" x-cloak @click.self="templatesOpen = false">
+    <section class="vehicle-modal__dialog vehicle-modal__dialog--wide">
+      <header><div><h2>Fahrzeugvorlage laden</h2><p>Vorlagen stehen in allen Lagen zur Verfügung.</p></div><button type="button" @click="templatesOpen = false">×</button></header>
+      <div class="vehicle-modal__body template-list">
+        <template x-for="template in templates" :key="template.id">
+          <article :class="{'template-list__invalid': template.invalid}"><div><strong x-text="template.name"></strong><small x-text="template.invalid ? template.error : `${template.vehicle_count} Fahrzeuge`"></small></div><template x-if="!template.invalid"><div class="template-list__actions"><button type="button" @click="applyTemplate(template, 'append')">Hinzufügen</button><button type="button" class="primary" @click="applyTemplate(template, 'replace')">Ersetzen</button><button type="button" class="danger" @click="removeTemplate(template)">{{ icon_trash() }}</button></div></template></article>
+        </template>
+        <p class="vehicles-empty" x-show="templates.length === 0">Noch keine Vorlagen gespeichert.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="helper-toast" x-show="toast" x-transition x-text="toast" x-cloak></div>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{{ url_for('static', filename='js/vehicles.js', v='4') }}"></script>{% endblock %}

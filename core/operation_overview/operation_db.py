@@ -42,4 +42,4 @@ def get_operation(operation_id):
     con = get_db()
     row = con.execute("SELECT * FROM overview_operations WHERE id = ?", (operation_id,)).fetchone()
     con.close()
-    return dict(row)
+    return dict(row) if row is not None else None

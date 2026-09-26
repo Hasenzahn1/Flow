@@ -7,11 +7,10 @@
           <value>
             <TabSessionState>
               <option name="provider" value="claude" />
-              <option name="sessionId" value="3e8bbfab-049d-4f05-bc2e-eadc8527b924" />
-              <option name="cwd" value="$PROJECT_DIR$" />
-              <option name="model" value="claude-sonnet-4-6" />
+              <option name="sessionId" value="ec4d0f5a-ee14-4fda-baab-32b762744b11" />
+              <option name="cwd" value="C:\Users\reuth\Documents\Development\Apps\Flow" />
+              <option name="model" value="claude-sonnet-5" />
               <option name="permissionMode" value="default" />
-              <option name="reasoningEffort" value="high" />
             </TabSessionState>
           </value>
         </entry>
